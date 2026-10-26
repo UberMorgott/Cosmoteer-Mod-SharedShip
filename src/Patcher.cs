@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Reflection.Emit;
 using Cosmoteer.Game.Multiplayer.MPInputs;
 using Cosmoteer.Ships.Commands;
@@ -23,7 +25,8 @@ namespace SharedShip;
 /// body shared by all reference-type instantiations -> InvalidCastException for the others); if the table ever lists a
 /// generic inliner, loading is refused.
 ///
-/// Any failure rolls back all of this mod's patches and leaves the game vanilla (<see cref="Enabled"/> = false).
+/// Any failure rolls back all of this mod's patches and leaves the game vanilla (<see cref="Enabled"/> = false); if
+/// that rollback itself fails, the process shows an error and exits before the game starts.
 /// </summary>
 internal static class Patcher
 {
@@ -59,10 +62,15 @@ internal static class Patcher
             }
             catch (Exception unpatchEx)
             {
-                // Partially patched game: neither vanilla nor SharedShip. Do not pretend otherwise; let the loader log it.
+                // Partially patched game: neither vanilla nor SharedShip, so lockstep MP would desync. Throwing is not
+                // enough: ModLoader.ApplicationMainPrefix (ModLoader.decompiled.cs:851-877) catches initializer exceptions,
+                // logs them and starts the game anyway. We run inside that prefix, before Cosmoteer's Main, so nothing of
+                // the game is initialized yet: tell the user and terminate the process.
                 Log.Error("unpatch", unpatchEx);
-                Log.Info("SharedShip FATAL: rollback failed, game is PARTIALLY PATCHED. Quit and remove the mod; do not join MP.");
-                throw new InvalidOperationException("SharedShip rollback failed; game is partially patched", unpatchEx);
+                Log.Info("SharedShip FATAL: rollback failed, game is PARTIALLY PATCHED. Exiting; remove or update the mod.");
+                FatalExit("SharedShip could not undo its partial patches after a failed install.\n\n"
+                    + "Cosmoteer will now close to avoid multiplayer desyncs. Remove or update the SharedShip mod.\n\n"
+                    + "Details: " + Log.ModFolder + "\\SharedShip.log");
             }
             Log.Info("SharedShip DISABLED: all patches rolled back, game runs vanilla. Teammates who still run the mod will desync.");
         }
@@ -171,6 +179,27 @@ internal static class Patcher
             }
             yield return ins;
         }
+    }
+
+    // Neither the game nor HalflingCore exposes a message-box API, and none is usable before Cosmoteer's Main anyway.
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "MessageBoxW")]
+    private static extern int MessageBox(IntPtr hWnd, string text, string caption, uint type);
+
+    private const uint MbOk = 0x0, MbIconError = 0x10, MbTopMost = 0x40000;
+
+    [DoesNotReturn]
+    private static void FatalExit(string message)
+    {
+        try
+        {
+            MessageBox(IntPtr.Zero, message, "SharedShip - fatal", MbOk | MbIconError | MbTopMost);
+        }
+        catch (Exception)
+        {
+            // No UI available (e.g. headless); exiting is what matters.
+        }
+        Environment.Exit(1);
+        throw new InvalidOperationException("unreachable");
     }
 
     private static MethodInfo Method(Type type, string name)
