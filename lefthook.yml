@@ -41,10 +41,12 @@
 # to commit every change. -Quiet suppresses output only on a GREEN run -- a failure
 # still prints everything (check.ps1). CI keeps its output: that is where the
 # [PASS] lines earn their keep, which is why this is not a global default.
-pre-commit:
+#
+# Project policy (owner, 2026-10-26): the gate runs before a push to GitHub and
+# before deploying into the game -- NOT on every commit. Hence pre-push only.
+pre-push:
   jobs:
-    - &quality_gate
-      name: quality-gate
+    - name: quality-gate
       run: 'if uname -o 2>/dev/null | grep -q Msys; then qgate.cmd -All -Full -Quiet; else qgate -All -Full -Quiet; fi'
 
 # A merge that commits on its own does NOT run pre-commit: git runs
@@ -65,9 +67,6 @@ pre-commit:
 # "message" for an ordinary commit too, so wiring the gate there would run it twice
 # on every normal commit. `git commit --amend` and `git merge --squash` both go
 # through pre-commit and are already covered.
-pre-merge-commit:
-  jobs:
-    - *quality_gate
 
 # The agent Stop hook is deliberately NOT generated through lefthook's `ai:`
 # key. Measured on 2.1.12: the generated command is `lefthook run <hook>`, which
