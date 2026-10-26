@@ -20,6 +20,7 @@ internal static class ShareMenu
     private const string KeyShare = "SharedShip/ShareAll";
     private const string KeyPrivate = "SharedShip/MakePrivate";
     private const string KeySelf = "SharedShip/ToSelf";
+    private const string TransferMenuKey = "CareerMode/TransferShipControl";
 
     // Weak: must not keep a finished game's GUI alive. Only touched on the frame thread.
     private static WeakReference<MenuItem>? _toggleItem;
@@ -51,7 +52,10 @@ internal static class ShareMenu
         var children = card.Menu.MenuBox.Children;
         // Vanilla moved its sub-category right after the "transfer crew or resources" button (line 1863).
         int index = children.IndexOf(card.TransferCrewOrResourcesButton) + 1;
-        if (index <= 0 || index >= children.Count || children[index] is not MenuSubCategory transferMenu)
+        // Verify identity too (another mod could have inserted its own sub-menu there): vanilla labels it with
+        // Strings.KeyString("CareerMode/TransferShipControl") (line 1862).
+        if (index <= 0 || index >= children.Count || children[index] is not MenuSubCategory transferMenu
+            || transferMenu.TextProvider is not KeyString { Key: TransferMenuKey })
         {
             Log.Info("WARN transfer-control menu not found; menu entries not added (Ctrl+Shift+H still works)");
             return;
