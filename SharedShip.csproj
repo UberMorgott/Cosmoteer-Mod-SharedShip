@@ -71,5 +71,6 @@
 
   <ItemGroup>
     <None Include="mod.rules" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="strings\*.rules" CopyToOutputDirectory="PreserveNewest" LinkBase="strings" />
   </ItemGroup>
 </Project>

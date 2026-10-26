@@ -11,7 +11,7 @@ namespace SharedShip;
 /// same lockstep input that removed the tag, so every client does it at the same tick.
 ///
 /// Scope: only commands whose author had access *solely* through sharing, i.e. the ship was tagged before the rename
-/// and the author passes <see cref="SharedRules.IsTeammateOfOwner"/> (Career, two different human slots). Owner,
+/// and the author passes <see cref="SharedRules.IsTeammateOfOwner"/> (Career, other human slot than the owner). Owner,
 /// spectator/creative "all players" index -4, AI/system (null author) and every non-Career mode are never touched.
 /// Rename does not change owner, mode or human slots, so evaluating IsTeammateOfOwner after Execute equals evaluating
 /// IsSharedWith before it.
@@ -31,17 +31,25 @@ internal static class RevokeOnUntag
     public static void Postfix(MPSetShipInfoInput __instance, GameRoot game, bool __state)
     {
         Ship? ship = __instance.Ship;
-        if (!__state || ship == null || SharedRules.HasTag(ship))
+        if (__state && ship != null && !SharedRules.HasTag(ship))
         {
-            return;
+            CancelTeammateDirectControl(ship, game);
         }
+    }
+
+    /// <summary>
+    /// Removes confirmed DirectControlCommands on <paramref name="ship"/> authored by a Career teammate of its current
+    /// owner. Call only at a point where the ship has just stopped being shared (lockstep input execution).
+    /// </summary>
+    public static void CancelTeammateDirectControl(Ship ship, GameRoot game)
+    {
         int removed = ship.Commands.RemoveAll(c => c is DirectControlCommand
             && c.IsConfirmed
             && c.UniqueID.PlayerID is { } author
             && SharedRules.IsTeammateOfOwner(ship, game.GetHumanPlayerIndex(author, allowUnknown: true)));
         if (removed > 0)
         {
-            Log.Info($"Untagged '{ship.Metadata.PlainShipName}': cancelled {removed} teammate direct-control command(s)");
+            Log.Info($"'{ship.Metadata.PlainShipName}' no longer shared: cancelled {removed} teammate direct-control command(s)");
         }
     }
 }

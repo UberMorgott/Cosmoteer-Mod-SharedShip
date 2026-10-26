@@ -1,0 +1,6 @@
+SharedShip
+{
+	ShareAll = "Всем (общий корабль)"
+	MakePrivate = "Сделать личным"
+	ToSelf = "Себе"
+}

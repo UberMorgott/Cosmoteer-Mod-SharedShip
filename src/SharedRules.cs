@@ -32,6 +32,12 @@ internal static class SharedRules
         return name != null && name.Contains(Tag, StringComparison.Ordinal);
     }
 
+    /// <summary>Name with every occurrence of the tag removed and trimmed (may be empty; sanitize before use).</summary>
+    public static string WithoutTag(string name) => name.Replace(Tag, string.Empty, StringComparison.Ordinal).Trim();
+
+    /// <summary>Name with the tag prepended.</summary>
+    public static string WithTag(string name) => Tag + " " + name;
+
     /// <summary>
     /// Extra permission granted by this mod on top of vanilla ownership: <paramref name="playerIndex"/> is another human
     /// player of a Career game and the ship is a [S]-tagged ship owned by a human player. AI factions (negative indexes or

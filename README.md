@@ -6,8 +6,13 @@ it. The ship also shows up in each teammate's own-ship views (control groups, se
 Ships without the tag stay 100% vanilla.
 
 ## Usage
-- Put `[S]` anywhere in the ship's name (ship info dialog), **or** select the ship(s) and press **Ctrl+Shift+H** to
-  toggle the tag. Removing the tag unshares the ship. Any player who can command the ship can toggle it.
+- Select ship(s), open the ship menu **Transfer ship control...** (Career with 2+ players) and pick
+  **Everyone (shared ship)**; on already shared ships the entry reads **Make private**. Shortcut: **Ctrl+Shift+H**.
+  Putting `[S]` anywhere in the ship name (ship info dialog) does the same. Any player who can command the ship can
+  toggle it.
+- **Myself** in the same menu takes the selected ship(s): a teammate's shared ship becomes your private ship.
+- Picking a player in that menu (vanilla) transfers the ship to them; a shared ship also becomes private (tag
+  removed). Any player with shared access may do this; other players' non-shared ships stay non-transferable.
 - The ship keeps its real owner (money, upkeep, fleet counts, ownership-based rules are the owner's).
 - Construction assistance from teammates' ships follows the vanilla per-ship setting: set it to *Allied* if teammates'
   ships should help build/supply it.
@@ -29,6 +34,8 @@ Ships without the tag stay 100% vanilla.
 - Harmony prefixes on `CommandManager.IsCommandableBy / CanExecuteCommandsFrom / CanExecuteCrewCommandsFrom` and the
   three `...LocalPlayer` getters, a postfix on `SimShipsManager.LocalPlayerShips`, and a prefix/postfix on
   `MPSetShipInfoInput.Execute` that cancels teammates' direct-control commands when the tag is removed.
+- `MPTransferShipControlInput.Execute` is replaced by a copy that also accepts senders with shared access and strips
+  the tag on transfer; a postfix on `CareerGameModeManager.CreateModeSpecificGui` adds the menu entries.
 - Cosmoteer.dll is ReadyToRun, so some precompiled methods contain inlined copies of those checks. The mod reads the
   exact list from the image's R2R inlining table (CrossModuleInlineInfo) and patches those methods too (21 in 0.30.5,
   all MPInput.Execute / UI helpers, none generic). Total ~0.2 s at startup; every patched inliner is logged to

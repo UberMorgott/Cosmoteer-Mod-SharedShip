@@ -1,0 +1,6 @@
+SharedShip
+{
+	ShareAll = "Everyone (shared ship)"
+	MakePrivate = "Make private"
+	ToSelf = "Myself"
+}

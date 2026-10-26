@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Reflection.Emit;
 using Cosmoteer.Game.Multiplayer.MPInputs;
+using Cosmoteer.Modes.Career;
 using Cosmoteer.Ships.Commands;
 using Cosmoteer.Simulation;
 using HarmonyLib;
@@ -46,7 +47,7 @@ internal static class Patcher
         {
             Install(harmony, out int inlinerCount);
             Enabled = true;
-            Log.Info($"Patched {Redirects.Count + 2} methods + {inlinerCount} R2R inliners in {sw.ElapsedMilliseconds} ms");
+            Log.Info($"Patched {Redirects.Count + 4} methods + {inlinerCount} R2R inliners in {sw.ElapsedMilliseconds} ms");
         }
         catch (Exception ex)
         {
@@ -91,8 +92,10 @@ internal static class Patcher
         };
         MethodInfo localPlayerShips = Getter(typeof(SimShipsManager), nameof(SimShipsManager.LocalPlayerShips));
         MethodInfo setShipInfo = Method(typeof(MPSetShipInfoInput), nameof(MPSetShipInfoInput.Execute));
+        MethodInfo transfer = Method(typeof(MPTransferShipControlInput), nameof(MPTransferShipControlInput.Execute));
+        MethodInfo careerGui = Method(typeof(CareerGameModeManager), nameof(CareerGameModeManager.CreateModeSpecificGui));
 
-        var patched = new List<MethodBase> { localPlayerShips, setShipInfo };
+        var patched = new List<MethodBase> { localPlayerShips, setShipInfo, transfer, careerGui };
         foreach (var t in commandTargets)
         {
             Redirects[t.Original.MethodHandle] = Method(typeof(SharedRules), t.Replacement);
@@ -110,6 +113,8 @@ internal static class Patcher
         harmony.Patch(setShipInfo,
             prefix: new HarmonyMethod(Method(typeof(RevokeOnUntag), nameof(RevokeOnUntag.Prefix))),
             postfix: new HarmonyMethod(Method(typeof(RevokeOnUntag), nameof(RevokeOnUntag.Postfix))));
+        harmony.Patch(transfer, prefix: new HarmonyMethod(Method(typeof(TransferShared), nameof(TransferShared.Prefix))));
+        harmony.Patch(careerGui, postfix: new HarmonyMethod(Method(typeof(ShareMenu), nameof(ShareMenu.CreateModeSpecificGuiPostfix))));
 
         var transpiler = new HarmonyMethod(Method(typeof(Patcher), nameof(RedirectTranspiler)));
         foreach (MethodBase inliner in inliners)

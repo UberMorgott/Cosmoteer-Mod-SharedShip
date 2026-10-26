@@ -1,8 +1,5 @@
 using System;
-using System.Collections.Generic;
 using Cosmoteer.Game;
-using Cosmoteer.Game.Multiplayer.MPInputs;
-using Cosmoteer.Ships;
 using Halfling;
 using Halfling.Input;
 
@@ -38,39 +35,19 @@ public static class Main
         try
         {
             // Only while the game itself is on top (no dialog / text box focused there).
-            if (App.Director.PeekState() is GameRoot game && App.Keyboard.HotkeyPressed(ViKey.Control, ViKey.Shift, ViKey.H))
+            if (App.Director.PeekState() is GameRoot game)
             {
-                ToggleSelected(game);
+                ShareMenu.Frame(game);
+                // Ctrl+Shift+H = the menu's "Everyone (shared ship)" / "Make private" entry.
+                if (App.Keyboard.HotkeyPressed(ViKey.Control, ViKey.Shift, ViKey.H))
+                {
+                    ShareActions.ToggleShared(game);
+                }
             }
         }
         catch (Exception ex)
         {
             Log.Error("frame", ex);
-        }
-    }
-
-    /// <summary>
-    /// Ctrl+Shift+H: add/remove the [S] tag on every selected ship the local player may command, through the vanilla
-    /// lockstep rename input (MPSetShipInfoInput, same call as ShipInfoDialog.OnOkayClicked) so all clients agree.
-    /// </summary>
-    private static void ToggleSelected(GameRoot game)
-    {
-        var ships = new List<Ship>();
-        foreach (Ship ship in game.Sim.PlayerInput.SelectedShips)
-        {
-            if (SharedRules.IsCommandableByLocalPlayer(ship.Commands))
-            {
-                ships.Add(ship);
-            }
-        }
-        foreach (Ship ship in ships)
-        {
-            string name = ship.Metadata.PlainShipName;
-            string newName = SharedRules.HasTag(ship)
-                ? name.Replace(SharedRules.Tag, string.Empty, StringComparison.Ordinal).Trim()
-                : SharedRules.Tag + " " + name;
-            game.NetManager.EnqueueInput(new MPSetShipInfoInput(ship, newName, ship.Metadata.Author, ship.Metadata.Description));
-            Log.Info($"Rename '{name}' -> '{newName}'");
         }
     }
 }
