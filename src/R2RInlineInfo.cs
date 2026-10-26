@@ -31,6 +31,7 @@ internal static class R2RInlineInfo
     private const uint SectionInliningInfo2 = 114;
     private const uint SectionCrossModuleInlineInfo = 119;
     private const uint FlagMultiModuleVersionBubble = 0x40;
+    private const ushort SupportedMajorVersion = 16;
 
     /// <summary>
     /// Returns inlinee MethodDef RID -> inliner MethodDef RIDs (same module only), or null when the image is plain IL
@@ -51,6 +52,12 @@ internal static class R2RInlineInfo
         if (BitConverter.ToUInt32(img, h) != ReadyToRunSignature)
         {
             throw new InvalidDataException("ManagedNativeHeader is not a ReadyToRun header");
+        }
+        ushort major = BitConverter.ToUInt16(img, h + 4);
+        if (major != SupportedMajorVersion)
+        {
+            // Layout verified only for the R2R version shipped with Cosmoteer 0.30.5 (v16.0); fail closed otherwise.
+            throw new NotSupportedException($"R2R major version {major} not supported (expected {SupportedMajorVersion})");
         }
         uint flags = BitConverter.ToUInt32(img, h + 8);
         int sectionCount = (int)BitConverter.ToUInt32(img, h + 12);
@@ -102,21 +109,23 @@ internal static class R2RInlineInfo
                 uint count = DecodeUnsigned(img, ref q);
                 uint encodedInlinee = DecodeUnsigned(img, ref q);
                 count--;
-                bool crossModuleInlinee = (encodedInlinee & 1) != 0;
-                uint inlineeModule = 0;
-                if (multiModule && !crossModuleInlinee)
+                // Fail closed on every layout we have not seen in Cosmoteer 0.30.5 (all entries there are local inlinee,
+                // module 0, local inliners). Skipping such entries could hide an inlined ownership check.
+                if ((encodedInlinee & 1) != 0)
                 {
-                    inlineeModule = DecodeUnsigned(img, ref q);
-                    count--;
+                    throw new NotSupportedException("R2R table has a cross-module inlinee entry");
                 }
                 if ((encodedInlinee & 2) != 0)
                 {
-                    uint crossCount = DecodeUnsigned(img, ref q);
+                    throw new NotSupportedException("R2R table has cross-module inliners");
+                }
+                if (multiModule)
+                {
+                    uint inlineeModule = DecodeUnsigned(img, ref q);
                     count--;
-                    for (uint k = 0; k < crossCount; k++)
+                    if (inlineeModule != 0)
                     {
-                        DecodeUnsigned(img, ref q);
-                        count--;
+                        throw new NotSupportedException($"R2R table has an inlinee from module index {inlineeModule}");
                     }
                 }
                 var inliners = new List<int>();
@@ -125,16 +134,13 @@ internal static class R2RInlineInfo
                 {
                     uint d = DecodeUnsigned(img, ref q);
                     count--;
-                    bool foreignInliner = false;
                     if (multiModule)
                     {
-                        rid += (int)(d >> 1);
                         if ((d & 1) != 0)
                         {
-                            DecodeUnsigned(img, ref q);
-                            count--;
-                            foreignInliner = true;
+                            throw new NotSupportedException("R2R table has an inliner from another module");
                         }
+                        rid += (int)(d >> 1);
                     }
                     else
                     {
@@ -144,14 +150,7 @@ internal static class R2RInlineInfo
                     {
                         throw new InvalidDataException($"inliner RID {rid} out of range (max {maxRid})");
                     }
-                    if (!foreignInliner)
-                    {
-                        inliners.Add(rid);
-                    }
-                }
-                if (crossModuleInlinee || inlineeModule != 0)
-                {
-                    continue; // inlinee lives in another module (e.g. HalflingCore); not ours to track
+                    inliners.Add(rid);
                 }
                 int inlineeRid = (int)(encodedInlinee >> 2);
                 if (inlineeRid <= 0 || inlineeRid > maxRid)

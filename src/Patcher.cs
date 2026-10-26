@@ -48,16 +48,23 @@ internal static class Patcher
         catch (Exception ex)
         {
             Enabled = false;
+            Log.Error("patch", ex);
             try
             {
                 harmony.UnpatchAll(HarmonyId);
+                if (Harmony.HasAnyPatches(HarmonyId))
+                {
+                    throw new InvalidOperationException("patches of " + HarmonyId + " still present after UnpatchAll");
+                }
             }
             catch (Exception unpatchEx)
             {
+                // Partially patched game: neither vanilla nor SharedShip. Do not pretend otherwise; let the loader log it.
                 Log.Error("unpatch", unpatchEx);
+                Log.Info("SharedShip FATAL: rollback failed, game is PARTIALLY PATCHED. Quit and remove the mod; do not join MP.");
+                throw new InvalidOperationException("SharedShip rollback failed; game is partially patched", unpatchEx);
             }
-            Log.Error("patch", ex);
-            Log.Info("SharedShip DISABLED: patches rolled back, game runs vanilla. Teammates who still run the mod will desync.");
+            Log.Info("SharedShip DISABLED: all patches rolled back, game runs vanilla. Teammates who still run the mod will desync.");
         }
     }
 

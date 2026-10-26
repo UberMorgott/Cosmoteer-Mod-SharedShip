@@ -39,12 +39,22 @@ internal static class SharedRules
     /// </summary>
     public static bool IsSharedWith(Ship ship, int playerIndex)
     {
+        return HasTag(ship) && IsTeammateOfOwner(ship, playerIndex);
+    }
+
+    /// <summary>
+    /// The tag-independent half of <see cref="IsSharedWith"/>: Career game, owner and <paramref name="playerIndex"/> are
+    /// two different human slots. Used to tell "had access only through sharing" apart from vanilla access.
+    /// </summary>
+    public static bool IsTeammateOfOwner(Ship ship, int playerIndex)
+    {
         int owner = ship.Metadata.PlayerIndex;
-        if (playerIndex < 0 || owner < 0 || owner == playerIndex || !HasTag(ship))
+        if (playerIndex < 0 || owner < 0 || owner == playerIndex)
         {
             return false;
         }
-        // Sim.Mode throws while a ship is being deserialized before the mode is set; the tag check above keeps this rare.
+        // Sim.Mode throws while a ship is being deserialized before the mode is set; IsSharedWith's tag check runs first,
+        // so this is rare on the hot path.
         try
         {
             return ship.Sim?.Mode is CareerSimModeManager career
