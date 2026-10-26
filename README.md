@@ -6,6 +6,7 @@ it. The ship also shows up in each teammate's own-ship views (control groups, se
 Ships without the tag stay 100% vanilla.
 
 ## Usage
+
 - Select ship(s), open the ship menu **Transfer ship control...** (Career with 2+ players) and pick
   **Everyone (shared ship)**; on already shared ships the entry reads **Make private**. Shortcut: **Ctrl+Shift+H**.
   Putting `[S]` anywhere in the ship name (ship info dialog) does the same. Any player who can command the ship can
@@ -18,6 +19,7 @@ Ships without the tag stay 100% vanilla.
   ships should help build/supply it.
 
 ## Install (every player)
+
 1. Subscribe to / install **Yet Another Mod Loader** (workshop 3577650065) and follow its install steps.
 2. Copy the `SharedShip` folder (`SharedShip.dll` + `mod.rules`) into
    `%USERPROFILE%\Saved Games\Cosmoteer\<steamid>\Mods\SharedShip`.
@@ -26,6 +28,7 @@ Ships without the tag stay 100% vanilla.
    player without the mod (or with another version) will desync.
 
 ## How it works
+
 - Flag = ship name contains `[S]`. The name is synced through the vanilla `MPSetShipInfoInput`, so every client sees
   the same flag at the same tick; nothing else is stored.
 - Extra permission (`SharedRules.IsSharedWith`): game mode is Career, the ship's owner and the requesting player are
@@ -44,6 +47,7 @@ Ships without the tag stay 100% vanilla.
   vanilla and the log says `SharedShip DISABLED` (teammates still running the mod would then desync).
 
 ## Known limits
+
 - Removing the tag cancels teammates' direct control only; other queued orders they gave stay until replaced.
 - Two players building on the same shared ship at the same moment can override each other's pending blueprint edits
   (each build input is applied in order).
@@ -54,5 +58,6 @@ Ships without the tag stay 100% vanilla.
 - Hotkey Ctrl+Shift+H is fixed; it is ignored while a dialog is open.
 
 ## Build
+
 `dotnet build -c Release` (needs `assembly-publicizer` global tool; lib\ is generated from the installed game).
 References the loader's own `0Harmony.dll` without copying it.

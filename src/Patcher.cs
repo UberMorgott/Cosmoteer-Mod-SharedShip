@@ -187,7 +187,7 @@ internal static class Patcher
     }
 
     // Neither the game nor HalflingCore exposes a message-box API, and none is usable before Cosmoteer's Main anyway.
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "MessageBoxW")]
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "MessageBoxW", SetLastError = true)]
     private static extern int MessageBox(IntPtr hWnd, string text, string caption, uint type);
 
     private const uint MbOk = 0x0, MbIconError = 0x10, MbTopMost = 0x40000;
@@ -197,7 +197,11 @@ internal static class Patcher
     {
         try
         {
-            MessageBox(IntPtr.Zero, message, "SharedShip - fatal", MbOk | MbIconError | MbTopMost);
+            // MessageBoxW returns 0 when the box could not be shown: record that the user never saw the reason.
+            if (MessageBox(IntPtr.Zero, message, "SharedShip - fatal", MbOk | MbIconError | MbTopMost) == 0)
+            {
+                Log.Info("fatal message box could not be shown (MessageBoxW error " + Marshal.GetLastWin32Error() + ")");
+            }
         }
         catch (Exception)
         {
