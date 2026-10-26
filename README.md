@@ -27,13 +27,17 @@ Ships without the tag stay 100% vanilla.
   both human slots (`CareerSimModeManager.IsHumanPlayerAllegiance`), and the name has the tag. AI factions, PvP and
   creative are untouched.
 - Harmony prefixes on `CommandManager.IsCommandableBy / CanExecuteCommandsFrom / CanExecuteCrewCommandsFrom` and the
-  three `...LocalPlayer` getters, plus a postfix on `SimShipsManager.LocalPlayerShips`.
-- Cosmoteer.dll is ReadyToRun, so callers may contain inlined copies of those tiny methods. The mod therefore scans
-  Cosmoteer.dll's IL and also patches every caller (transitively through small wrappers such as
-  `Ship.IsLocalPlayerShip`), redirecting the calls to `SharedRules`. About 150 methods, ~0.5 s once at startup; the
-  count is written to `SharedShip.log` next to the DLL.
+  three `...LocalPlayer` getters, a postfix on `SimShipsManager.LocalPlayerShips`, and a prefix/postfix on
+  `MPSetShipInfoInput.Execute` that cancels teammates' direct-control commands when the tag is removed.
+- Cosmoteer.dll is ReadyToRun, so some precompiled methods contain inlined copies of those checks. The mod reads the
+  exact list from the image's R2R inlining table (CrossModuleInlineInfo) and patches those methods too (21 in 0.30.5,
+  all MPInput.Execute / UI helpers, none generic). Total ~0.2 s at startup; every patched inliner is logged to
+  `SharedShip.log` next to the DLL.
+- All-or-nothing: if any patch or the inlining-table read fails, all of the mod's patches are removed, the game runs
+  vanilla and the log says `SharedShip DISABLED` (teammates still running the mod would then desync).
 
 ## Known limits
+- Removing the tag cancels teammates' direct control only; other queued orders they gave stay until replaced.
 - Two players building on the same shared ship at the same moment can override each other's pending blueprint edits
   (each build input is applied in order).
 - Build/repair costs are charged to the player who issues the build, not the owner.

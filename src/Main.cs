@@ -8,13 +8,13 @@ using Halfling.Input;
 
 namespace SharedShip;
 
-/// <summary>Entry point called by Yet Another Mod Loader (public static void GameLoadInitializer()).</summary>
+/// <summary>
+/// Entry point called by Yet Another Mod Loader (public static void GameLoadInitializer()). The loader calls it from its
+/// Application.Main prefix, i.e. before any game code has run.
+/// </summary>
 public static class Main
 {
     private static bool _initialized;
-
-    /// <summary>Thread that drives frames; FleetView only serves its cached list there.</summary>
-    internal static int MainThreadId { get; private set; } = -1;
 
     public static void GameLoadInitializer()
     {
@@ -24,14 +24,10 @@ public static class Main
         }
         _initialized = true;
         Log.Init();
-        try
+        Patcher.Apply();
+        if (!Patcher.Enabled)
         {
-            Patcher.Apply();
-        }
-        catch (Exception ex)
-        {
-            Log.Error("patch", ex);
-            return;
+            return; // rolled back; Patcher logged why
         }
         App.Director.FrameEnded += OnFrameEnded;
         Log.Info("SharedShip initialized");
@@ -39,8 +35,6 @@ public static class Main
 
     private static void OnFrameEnded(object? sender, EventArgs e)
     {
-        MainThreadId = Environment.CurrentManagedThreadId;
-        FleetView.Frame++;
         try
         {
             // Only while the game itself is on top (no dialog / text box focused there).

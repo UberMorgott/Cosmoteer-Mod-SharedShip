@@ -3,10 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Reflection.Metadata;
-using System.Reflection.Metadata.Ecma335;
-using System.Reflection.PortableExecutable;
-using System.IO;
+using Cosmoteer.Game.Multiplayer.MPInputs;
 using Cosmoteer.Ships.Commands;
 using Cosmoteer.Simulation;
 using HarmonyLib;
@@ -14,42 +11,60 @@ using HarmonyLib;
 namespace SharedShip;
 
 /// <summary>
-/// Applies all Harmony patches.
+/// Installs every patch, all-or-nothing.
 ///
-/// Why callers are patched too: Cosmoteer.dll ships as ReadyToRun (CorFlags ILLibrary). crossgen2 inlines small
-/// same-assembly methods into their callers ahead of time, and CommandManager.IsCommandableBy (~25 bytes IL) and the
-/// *LocalPlayer getters are textbook inline candidates. Harmony detours the method entry point and MonoMod marks the
-/// patched method NoInline (FxCoreBaseRuntime.DisableInlining), which fixes every caller compiled AFTER patching - but
-/// precompiled R2R callers that already inlined the old body would keep the vanilla ownership check (cold MPInput
-/// Execute methods may never be re-jitted by tiering). So every method that calls a target is also patched:
-///   - a transpiler swaps call/callvirt of the six CommandManager members for <see cref="SharedRules"/> statics, and
-///   - patching forces that caller to be compiled from IL again, which drops any stale inlined copy.
-/// Small callers (&lt;= <see cref="InlineCandidateMaxIl"/> bytes IL, e.g. Ship.get_IsLocalPlayerShip) could themselves be
-/// inlined into their own callers, so the caller search is repeated transitively through them.
+/// Inlining: Cosmoteer.dll is ReadyToRun. Harmony detours a method's entry point and MonoMod marks it NoInline
+/// (FxCoreBaseRuntime.DisableInlining), which covers every caller compiled after patching. The loader runs
+/// GameLoadInitializer from its Application.Main prefix (ModLoader.ApplicationMainPrefix), before game code runs, so
+/// nothing has been tier-1 re-jitted yet. What remains are precompiled bodies that already contain an inlined copy of a
+/// patched method. Those are read exactly from the image's R2R inlining table (<see cref="R2RInlineInfo"/>) and patched
+/// too: a Harmony patch rebuilds the method from IL, dropping the stale copy, and the transpiler additionally calls
+/// <see cref="SharedRules"/> directly. Shared generic code is never patched (Harmony bakes one T into the canonical
+/// body shared by all reference-type instantiations -> InvalidCastException for the others); if the table ever lists a
+/// generic inliner, loading is refused.
+///
+/// Any failure rolls back all of this mod's patches and leaves the game vanilla (<see cref="Enabled"/> = false).
 /// </summary>
 internal static class Patcher
 {
     public const string HarmonyId = "morgott.sharedship";
 
-    /// <summary>
-    /// IL size up to which a caller is treated as a possible R2R inlinee (the JIT always inlines &lt;= 16 bytes and
-    /// usually inlines simple wrappers up to a few dozen bytes; 32 covers property chains like IsLocalPlayerShip).
-    /// </summary>
-    private const int InlineCandidateMaxIl = 32;
+    /// <summary>True only when every required patch is installed.</summary>
+    public static bool Enabled { get; private set; }
 
-    private const int MaxClosureDepth = 4;
-
-    /// <summary>Vanilla member (by method handle) -> replacement static in SharedRules.</summary>
+    /// <summary>Vanilla CommandManager member (by method handle) -> replacement static in SharedRules.</summary>
     private static readonly Dictionary<RuntimeMethodHandle, MethodInfo> Redirects = new();
 
     public static void Apply()
     {
         var sw = Stopwatch.StartNew();
         var harmony = new Harmony(HarmonyId);
-        Type cm = typeof(CommandManager);
-        Type rules = typeof(SharedRules);
+        try
+        {
+            Install(harmony, out int inlinerCount);
+            Enabled = true;
+            Log.Info($"Patched {Redirects.Count + 2} methods + {inlinerCount} R2R inliners in {sw.ElapsedMilliseconds} ms");
+        }
+        catch (Exception ex)
+        {
+            Enabled = false;
+            try
+            {
+                harmony.UnpatchAll(HarmonyId);
+            }
+            catch (Exception unpatchEx)
+            {
+                Log.Error("unpatch", unpatchEx);
+            }
+            Log.Error("patch", ex);
+            Log.Info("SharedShip DISABLED: patches rolled back, game runs vanilla. Teammates who still run the mod will desync.");
+        }
+    }
 
-        // (vanilla member, replacement, prefix that makes the vanilla member itself answer like the replacement)
+    private static void Install(Harmony harmony, out int inlinerCount)
+    {
+        Type cm = typeof(CommandManager);
+        // (vanilla member, SharedRules replacement, prefix that makes the vanilla member answer like the replacement)
         var commandTargets = new (MethodInfo Original, string Replacement, string Prefix)[]
         {
             (Method(cm, nameof(CommandManager.IsCommandableBy)), nameof(SharedRules.IsCommandableBy), nameof(OriginalPrefixes.IsCommandableBy)),
@@ -60,41 +75,78 @@ internal static class Patcher
             (Getter(cm, nameof(CommandManager.CanExecuteCrewCommandsFromLocalPlayer)), nameof(SharedRules.CanExecuteCrewCommandsFromLocalPlayer), nameof(OriginalPrefixes.CanExecuteCrewCommandsFromLocalPlayer)),
         };
         MethodInfo localPlayerShips = Getter(typeof(SimShipsManager), nameof(SimShipsManager.LocalPlayerShips));
+        MethodInfo setShipInfo = Method(typeof(MPSetShipInfoInput), nameof(MPSetShipInfoInput.Execute));
 
-        var targets = new List<MethodBase> { localPlayerShips };
+        var patched = new List<MethodBase> { localPlayerShips, setShipInfo };
         foreach (var t in commandTargets)
         {
-            MethodInfo replacement = rules.GetMethod(t.Replacement, BindingFlags.Public | BindingFlags.Static)
-                ?? throw new MissingMethodException(rules.FullName, t.Replacement);
-            Redirects[t.Original.MethodHandle] = replacement;
-            targets.Add(t.Original);
+            Redirects[t.Original.MethodHandle] = Method(typeof(SharedRules), t.Replacement);
+            patched.Add(t.Original);
         }
 
-        // 1. The vanilla members themselves (covers reflection, other mods, and anything JIT-compiled later).
+        // Inlined copies must be known before anything is patched (pure read of the game DLL).
+        List<MethodBase> inliners = FindR2RInliners(patched);
+
         foreach (var t in commandTargets)
         {
             harmony.Patch(t.Original, prefix: new HarmonyMethod(Method(typeof(OriginalPrefixes), t.Prefix)));
         }
         harmony.Patch(localPlayerShips, postfix: new HarmonyMethod(Method(typeof(FleetView), nameof(FleetView.LocalPlayerShipsPostfix))));
+        harmony.Patch(setShipInfo,
+            prefix: new HarmonyMethod(Method(typeof(RevokeOnUntag), nameof(RevokeOnUntag.Prefix))),
+            postfix: new HarmonyMethod(Method(typeof(RevokeOnUntag), nameof(RevokeOnUntag.Postfix))));
 
-        // 2. Every (transitive, through small wrappers) caller inside Cosmoteer.dll.
-        List<MethodBase> callers = FindCallers(cm.Module, targets, out int skipped);
         var transpiler = new HarmonyMethod(Method(typeof(Patcher), nameof(RedirectTranspiler)));
-        int patched = 0, failed = 0;
-        foreach (MethodBase caller in callers)
+        foreach (MethodBase inliner in inliners)
         {
-            try
+            harmony.Patch(inliner, transpiler: transpiler);
+            Log.Info($"  R2R inliner patched: {inliner.DeclaringType?.FullName}.{inliner.Name}");
+        }
+        inlinerCount = inliners.Count;
+    }
+
+    /// <summary>
+    /// Precompiled methods of Cosmoteer.dll that contain an inlined copy of any method in <paramref name="patched"/>.
+    /// Throws if the table cannot be read or lists a method we cannot safely patch.
+    /// </summary>
+    internal static List<MethodBase> FindR2RInliners(List<MethodBase> patched)
+    {
+        Module module = typeof(CommandManager).Module;
+        Dictionary<int, List<int>>? table = R2RInlineInfo.Read(module.Assembly.Location);
+        var result = new List<MethodBase>();
+        if (table == null)
+        {
+            return result; // pure IL image: nothing was inlined ahead of time
+        }
+        var patchedRids = new HashSet<int>();
+        foreach (MethodBase m in patched)
+        {
+            patchedRids.Add(R2RInlineInfo.Rid(m));
+        }
+        var seen = new HashSet<int>();
+        foreach (MethodBase m in patched)
+        {
+            if (!table.TryGetValue(R2RInlineInfo.Rid(m), out List<int>? inlinerRids))
             {
-                harmony.Patch(caller, transpiler: transpiler);
-                patched++;
+                continue;
             }
-            catch (Exception ex)
+            foreach (int rid in inlinerRids)
             {
-                failed++;
-                Log.Info($"WARN could not patch caller {caller.DeclaringType?.FullName}.{caller.Name}: {ex.GetType().Name}: {ex.Message}");
+                if (patchedRids.Contains(rid) || !seen.Add(rid))
+                {
+                    continue; // already replaced by its own prefix/postfix patch
+                }
+                MethodBase inliner = module.ResolveMethod(0x06000000 | rid)
+                    ?? throw new InvalidOperationException($"cannot resolve inliner RID {rid}");
+                if (inliner.ContainsGenericParameters)
+                {
+                    throw new NotSupportedException(
+                        $"{inliner.DeclaringType?.FullName}.{inliner.Name} is shared generic code with an inlined ownership check; refusing to patch it");
+                }
+                result.Add(inliner);
             }
         }
-        Log.Info($"Patched {targets.Count} targets + {patched} callers ({failed} failed, {skipped} unpatchable generic/unresolved skipped) in {sw.ElapsedMilliseconds} ms");
+        return result;
     }
 
     /// <summary>Rewrites call/callvirt of a redirected CommandManager member into a call of its SharedRules twin.</summary>
@@ -112,133 +164,6 @@ internal static class Patcher
             }
             yield return ins;
         }
-    }
-
-    /// <summary>
-    /// Scans Cosmoteer.dll's IL (System.Reflection.Metadata, no JIT, no allocation per instruction) for methods calling
-    /// any target; small callers become targets for the next round. Returns all callers that are not targets.
-    /// </summary>
-    internal static List<MethodBase> FindCallers(Module module, List<MethodBase> roots, out int skipped)
-    {
-        var targetTokens = new HashSet<int>();
-        foreach (MethodBase m in roots)
-        {
-            targetTokens.Add(m.MetadataToken);
-        }
-        var callerTokens = new HashSet<int>();
-        var result = new List<MethodBase>();
-        skipped = 0;
-
-        using var stream = File.OpenRead(module.Assembly.Location);
-        using var pe = new PEReader(stream);
-        MetadataReader md = pe.GetMetadataReader();
-
-        var frontier = new HashSet<int>(targetTokens);
-        for (int depth = 0; depth < MaxClosureDepth && frontier.Count > 0; depth++)
-        {
-            var next = new HashSet<int>();
-            foreach (MethodDefinitionHandle h in md.MethodDefinitions)
-            {
-                MethodDefinition def = md.GetMethodDefinition(h);
-                if (def.RelativeVirtualAddress == 0)
-                {
-                    continue;
-                }
-                int token = MetadataTokens.GetToken(h);
-                if (targetTokens.Contains(token) || callerTokens.Contains(token))
-                {
-                    continue;
-                }
-                MethodBodyBlock body = pe.GetMethodBody(def.RelativeVirtualAddress);
-                if (!CallsAny(body.GetILReader(), frontier))
-                {
-                    continue;
-                }
-                callerTokens.Add(token);
-                MethodBase? caller;
-                try
-                {
-                    caller = module.ResolveMethod(token);
-                }
-                catch (Exception)
-                {
-                    caller = null;
-                }
-                if (caller != null && caller.ContainsGenericParameters)
-                {
-                    // Open generic method of a generic class: patch one reference-type instantiation instead. All
-                    // reference-type instantiations share one canonical native body, so that covers e.g.
-                    // BaseCommandState<Command/MoveCommand/AttackCommand>.Input (BaseCommandState.cs:90).
-                    caller = CloseOverReferenceTypes(module, caller);
-                }
-                if (caller == null || caller.ContainsGenericParameters || caller.IsAbstract)
-                {
-                    skipped++;
-                    Log.Info($"skip (generic/unresolvable) caller token 0x{token:X8}");
-                    continue;
-                }
-                result.Add(caller);
-                if (body.Size <= InlineCandidateMaxIl)
-                {
-                    next.Add(token);
-                }
-            }
-            frontier = next;
-        }
-        return result;
-    }
-
-    /// <summary>
-    /// For a non-generic method declared on a generic class, returns the same method on the first instantiation of that
-    /// class found as a base type in the module whose type arguments are all reference types; null if none.
-    /// </summary>
-    private static MethodBase? CloseOverReferenceTypes(Module module, MethodBase open)
-    {
-        Type? definition = open.DeclaringType;
-        if (definition == null || !definition.IsGenericTypeDefinition || open.IsGenericMethodDefinition)
-        {
-            return null;
-        }
-        Type[] types;
-        try
-        {
-            types = module.GetTypes();
-        }
-        catch (ReflectionTypeLoadException ex)
-        {
-            types = Array.FindAll(ex.Types, t => t != null)!;
-        }
-        foreach (Type type in types)
-        {
-            for (Type? b = type.BaseType; b != null; b = b.BaseType)
-            {
-                if (b.IsConstructedGenericType && !b.ContainsGenericParameters && b.GetGenericTypeDefinition() == definition
-                    && Array.TrueForAll(b.GetGenericArguments(), a => !a.IsValueType))
-                {
-                    return MethodBase.GetMethodFromHandle(open.MethodHandle, b.TypeHandle);
-                }
-            }
-        }
-        return null;
-    }
-
-    private static bool CallsAny(BlobReader il, HashSet<int> tokens)
-    {
-        while (il.RemainingBytes > 0)
-        {
-            OpCode op = IlOpCodes.Read(ref il);
-            if (op.OperandType == OperandType.InlineMethod)
-            {
-                int token = il.ReadInt32();
-                if ((op == OpCodes.Call || op == OpCodes.Callvirt) && tokens.Contains(token))
-                {
-                    return true;
-                }
-                continue;
-            }
-            IlOpCodes.SkipOperand(ref il, op);
-        }
-        return false;
     }
 
     private static MethodInfo Method(Type type, string name)
@@ -291,66 +216,5 @@ internal static class OriginalPrefixes
     {
         __result = SharedRules.CanExecuteCrewCommandsFromLocalPlayer(__instance);
         return false;
-    }
-}
-
-/// <summary>Minimal IL opcode decoder for <see cref="Patcher.FindCallers"/>.</summary>
-internal static class IlOpCodes
-{
-    private static readonly OpCode[] OneByte = new OpCode[0x100];
-    private static readonly OpCode[] TwoByte = new OpCode[0x100];
-
-    static IlOpCodes()
-    {
-        foreach (FieldInfo f in typeof(OpCodes).GetFields(BindingFlags.Public | BindingFlags.Static))
-        {
-            if (f.GetValue(null) is not OpCode op)
-            {
-                continue;
-            }
-            ushort value = unchecked((ushort)op.Value);
-            if (op.Size == 1)
-            {
-                OneByte[value] = op;
-            }
-            else
-            {
-                TwoByte[value & 0xFF] = op;
-            }
-        }
-    }
-
-    public static OpCode Read(ref BlobReader il)
-    {
-        byte b = il.ReadByte();
-        return b == 0xFE ? TwoByte[il.ReadByte()] : OneByte[b];
-    }
-
-    public static void SkipOperand(ref BlobReader il, OpCode op)
-    {
-        switch (op.OperandType)
-        {
-            case OperandType.InlineNone:
-                break;
-            case OperandType.ShortInlineBrTarget:
-            case OperandType.ShortInlineI:
-            case OperandType.ShortInlineVar:
-                il.Offset += 1;
-                break;
-            case OperandType.InlineVar:
-                il.Offset += 2;
-                break;
-            case OperandType.InlineI8:
-            case OperandType.InlineR:
-                il.Offset += 8;
-                break;
-            case OperandType.InlineSwitch:
-                int count = il.ReadInt32();
-                il.Offset += count * 4;
-                break;
-            default: // InlineBrTarget, InlineField, InlineI, InlineMethod, InlineSig, InlineString, InlineTok, InlineType, ShortInlineR
-                il.Offset += 4;
-                break;
-        }
     }
 }
