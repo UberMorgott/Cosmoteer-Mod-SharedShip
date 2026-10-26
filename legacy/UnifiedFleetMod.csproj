@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <AssemblyName>unified_fleet_control</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="krafs.publicizer" Version="2.2.1" />
+    <PackageReference Include="Lib.Harmony" Version="2.3.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Publicize Include="Cosmoteer" IncludeCompilerGeneratedMembers="false" />
+    <Publicize Include="HalflingCore" IncludeCompilerGeneratedMembers="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Cosmoteer">
+      <HintPath>D:\Steam\steamapps\common\Cosmoteer\Bin\Cosmoteer.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="HalflingCore">
+      <HintPath>D:\Steam\steamapps\common\Cosmoteer\Bin\HalflingCore.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
