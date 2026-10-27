@@ -11,7 +11,8 @@ Marque uma ou mais das suas naves como [b]compartilhadas[/b] e qualquer jogador 
 [*]comandá-la: mover, atacar, metralhar lateralmente, controle direto;
 [*]disparar suas armas e escolher alvos;
 [*]gerenciar tripulação, recursos, interruptores e pintura;
-[*]construir, editar e reparar nela.
+[*]construir, editar e reparar nela;
+[*]usar os recursos armazenados nela para construir as próprias naves e negociá-los: o dinheiro vai para (ou sai de) quem fez a negociação.
 [/list]
 A nave também aparece nas listas de naves próprias de cada colega (grupos de controle, selecionar naves próprias, prontidão para FTL, comunicações). Naves não compartilhadas continuam 100% vanilla. A nave mantém o dono real: dinheiro, manutenção e contagem da frota continuam com o dono.
 
@@ -36,7 +37,7 @@ A nave também aparece nas listas de naves próprias de cada colega (grupos de c
 [*]Tornar uma nave privada cancela apenas o controle direto dos colegas; as outras ordens deles continuam até serem substituídas.
 [*]Se dois jogadores construírem ao mesmo tempo na mesma nave compartilhada, as edições pendentes podem se sobrescrever.
 [*]Os custos de construção e reparo são pagos por quem deu a ordem.
-[*]Transferência de tripulação, troca de recursos e dinheiro continuam baseados no dono (vanilla).
+[*]A transferência de tripulação continua baseada no dono (vanilla).
 [/list]
 
 Idiomas: inglês, russo, alemão, espanhol, francês, japonês, português (Brasil), chinês simplificado.

@@ -11,7 +11,8 @@ Mark one or more of your ships as [b]shared[/b], and every human player in the s
 [*]command it: move, attack, strafe, direct control;
 [*]fire its weapons and pick targets;
 [*]manage its crew, resources, toggles and paint;
-[*]build, edit and repair on it.
+[*]build, edit and repair on it;
+[*]draw on its stored resources when building their own ships, and trade them: the money goes to (or comes from) the player who makes the trade.
 [/list]
 The ship also appears in each teammate's own-ship lists (control groups, select own ships, FTL readiness, comms). Ships that are not shared stay 100% vanilla. The ship keeps its real owner: money, upkeep and fleet counts stay with the owner.
 
@@ -36,7 +37,7 @@ The ship also appears in each teammate's own-ship lists (control groups, select 
 [*]Making a ship private cancels teammates' direct control only; their other queued orders stay until replaced.
 [*]Two players building on the same shared ship at the same moment can override each other's pending edits.
 [*]Build and repair costs are paid by the player who orders them.
-[*]Crew transfer, resource trade and money stay owner-based (vanilla).
+[*]Crew transfer stays owner-based (vanilla).
 [/list]
 
 Languages: English, Russian, German, Spanish, French, Japanese, Portuguese (Brazil), Simplified Chinese.

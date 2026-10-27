@@ -11,7 +11,8 @@ Marquez un ou plusieurs de vos vaisseaux comme [b]partagés[/b] : chaque joueur 
 [*]le commander : déplacement, attaque, mitraillage latéral, contrôle direct ;
 [*]utiliser ses armes et choisir ses cibles ;
 [*]gérer son équipage, ses ressources, ses interrupteurs et sa peinture ;
-[*]construire, modifier et réparer dessus.
+[*]construire, modifier et réparer dessus ;
+[*]puiser dans ses ressources pour construire ses propres vaisseaux et les échanger : l'argent est versé au joueur qui fait l'échange (ou payé par lui).
 [/list]
 Le vaisseau apparaît aussi dans les listes de vaisseaux de chaque coéquipier (groupes de contrôle, sélection de ses vaisseaux, préparation au FTL, communications). Les vaisseaux non partagés restent 100 % vanilla. Le vaisseau garde son vrai propriétaire : l'argent, l'entretien et le décompte de la flotte restent les siens.
 
@@ -36,7 +37,7 @@ Le vaisseau apparaît aussi dans les listes de vaisseaux de chaque coéquipier (
 [*]Rendre un vaisseau privé annule seulement le contrôle direct des coéquipiers ; leurs autres ordres restent jusqu'à être remplacés.
 [*]Si deux joueurs construisent en même temps sur le même vaisseau partagé, leurs modifications en attente peuvent s'écraser.
 [*]Les coûts de construction et de réparation sont payés par le joueur qui les ordonne.
-[*]Le transfert d'équipage, l'échange de ressources et l'argent restent liés au propriétaire (vanilla).
+[*]Le transfert d'équipage reste lié au propriétaire (vanilla).
 [/list]
 
 Langues : anglais, russe, allemand, espagnol, français, japonais, portugais (Brésil), chinois simplifié.

@@ -23,6 +23,8 @@ Languages: every language the game ships (en, de, es, fr, ja, pt-br, ru, zh-cn),
 - The ship keeps its real owner (money, upkeep, fleet counts, ownership-based rules are the owner's).
 - Construction assistance from teammates' ships follows the vanilla per-ship setting: set it to *Allied* if teammates'
   ships should help build/supply it.
+- Teammates building their own ships can draw construction resources from the shared ship. Resource trades from
+  the shared ship pay or charge the player who makes the trade, not the owner.
 
 ## Install (every player)
 
@@ -58,7 +60,7 @@ Languages: every language the game ships (en, de, es, fr, ja, pt-br, ru, zh-cn),
 - Two players building on the same shared ship at the same moment can override each other's pending blueprint edits
   (each build input is applied in order).
 - Build/repair costs are charged to the player who issues the build, not the owner.
-- Crew transfer between teammates' ships and the shared ship, resource trade, and money stay vanilla (owner-based).
+- Crew transfer between teammates' ships and the shared ship stays vanilla (owner-based).
 - `GetShipsForPlayer` is not changed (sim code counts ships per owner), so owner-only systems (e.g. fleet limits,
   owner's ship counters) still see the shared ship only under its owner.
 - Hotkey Ctrl+Shift+H is fixed; it is ignored while a dialog is open.
