@@ -1,7 +1,10 @@
 using System;
+using Cosmoteer.Game;
 using Cosmoteer.Modes.Career;
 using Cosmoteer.Ships;
 using Cosmoteer.Ships.Commands;
+using Cosmoteer.Ships.Crew.Jobs;
+using Halfling.Network;
 
 namespace SharedShip;
 
@@ -71,6 +74,39 @@ internal static class SharedRules
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Construction-source filter (replaces Ship.IsSamePlayerAs in ResourceManager.GetUsableConstructionResourceShips):
+    /// vanilla same-player, plus <paramref name="candidate"/> is shared with the owner of the ship under construction.
+    /// One direction only: a shared ship supplies teammates' ships, teammates' private ships never supply the shared one.
+    /// </summary>
+    public static bool IsSamePlayerOrSharedWith(Ship candidate, Ship constructing)
+    {
+        return candidate.IsSamePlayerAs(constructing) || IsSharedWith(candidate, constructing.Metadata.PlayerIndex);
+    }
+
+    /// <summary>
+    /// Player whose money a trade job moves (replaces job.Ship.Metadata.PlayerIndex in ResourceTransferJob's money code):
+    /// the player who issued it (ManualID.PlayerID, serialized with the job and hashed) when that player is a connected
+    /// Career teammate of the ship's owner, else the owner (vanilla; also auto/global jobs with no issuer).
+    /// Independent of the [S] tag on purpose: the issuer could only create the job while the ship was shared
+    /// (MPMoveResourcesInput.Execute checks CanExecuteCrewCommandsFrom), and debit and refund of one job must hit the same
+    /// player even if the tag is removed in between. Only connected players count (GameRoot.HumanPlayersByID comes from
+    /// the lockstep player list, a mid-game joiner has the same map); disconnected issuers fall back to the owner because
+    /// GameRoot's disconnected-player map is not part of a join snapshot.
+    /// </summary>
+    public static int PayerIndex(ResourceTransferJob job)
+    {
+        Ship ship = job.Ship!;
+        if (job.ManualID?.PlayerID is MessengerID issuer
+            && job.Game is GameRoot game
+            && game.HumanPlayersByID.TryGetValue(issuer, out int index)
+            && IsTeammateOfOwner(ship, index))
+        {
+            return index;
+        }
+        return ship.Metadata.PlayerIndex;
     }
 
     // ---- Replacements for the vanilla CommandManager members (bodies mirror CommandManager.cs:327-737 of 0.30.5). ----

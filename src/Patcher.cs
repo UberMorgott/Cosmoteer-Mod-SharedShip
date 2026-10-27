@@ -8,6 +8,7 @@ using System.Reflection.Emit;
 using Cosmoteer.Game.Multiplayer.MPInputs;
 using Cosmoteer.Modes.Career;
 using Cosmoteer.Ships.Commands;
+using Cosmoteer.Ships.Crew.Jobs;
 using Cosmoteer.Simulation;
 using HarmonyLib;
 
@@ -45,9 +46,9 @@ internal static class Patcher
         var harmony = new Harmony(HarmonyId);
         try
         {
-            Install(harmony, out int inlinerCount);
+            Install(harmony, out int patchedCount, out int inlinerCount);
             Enabled = true;
-            Log.Info($"Patched {Redirects.Count + 4} methods + {inlinerCount} R2R inliners in {sw.ElapsedMilliseconds} ms");
+            Log.Info($"Patched {patchedCount} methods + {inlinerCount} R2R inliners in {sw.ElapsedMilliseconds} ms");
         }
         catch (Exception ex)
         {
@@ -77,7 +78,7 @@ internal static class Patcher
         }
     }
 
-    private static void Install(Harmony harmony, out int inlinerCount)
+    private static void Install(Harmony harmony, out int patchedCount, out int inlinerCount)
     {
         Type cm = typeof(CommandManager);
         // (vanilla member, SharedRules replacement, prefix that makes the vanilla member answer like the replacement)
@@ -95,7 +96,22 @@ internal static class Patcher
         MethodInfo transfer = Method(typeof(MPTransferShipControlInput), nameof(MPTransferShipControlInput.Execute));
         MethodInfo careerGui = Method(typeof(CareerGameModeManager), nameof(CareerGameModeManager.CreateModeSpecificGui));
 
-        var patched = new List<MethodBase> { localPlayerShips, setShipInfo, transfer, careerGui };
+        MethodInfo usableShipsFilter = SharedResources.UsableShipsFilter();
+        MethodInfo moveResources = Method(typeof(MPMoveResourcesInput), nameof(MPMoveResourcesInput.Execute));
+        var moneyMethods = new List<MethodInfo>();
+        foreach (var (name, _) in SharedResources.MoneyMethods)
+        {
+            Type job = typeof(ResourceTransferJob);
+            moneyMethods.Add(name switch
+            {
+                "set_ResourcesRequested" => AccessTools.PropertySetter(job, nameof(ResourceTransferJob.ResourcesRequested)),
+                "Cancel" => AccessTools.Method(job, name, new[] { typeof(int), typeof(bool) }),
+                _ => Method(job, name),
+            } ?? throw new MissingMethodException(job.FullName, name));
+        }
+
+        var patched = new List<MethodBase> { localPlayerShips, setShipInfo, transfer, careerGui, usableShipsFilter, moveResources };
+        patched.AddRange(moneyMethods);
         foreach (var t in commandTargets)
         {
             Redirects[t.Original.MethodHandle] = Method(typeof(SharedRules), t.Replacement);
@@ -115,6 +131,14 @@ internal static class Patcher
             postfix: new HarmonyMethod(Method(typeof(RevokeOnUntag), nameof(RevokeOnUntag.Postfix))));
         harmony.Patch(transfer, prefix: new HarmonyMethod(Method(typeof(TransferShared), nameof(TransferShared.Prefix))));
         harmony.Patch(careerGui, postfix: new HarmonyMethod(Method(typeof(ShareMenu), nameof(ShareMenu.CreateModeSpecificGuiPostfix))));
+        harmony.Patch(usableShipsFilter, transpiler: new HarmonyMethod(Method(typeof(SharedResources), nameof(SharedResources.UsableShipsFilterTranspiler))));
+        harmony.Patch(moveResources, prefix: new HarmonyMethod(Method(typeof(SharedResources), nameof(SharedResources.RejectForgedIssuer))));
+        var payerTranspiler = new HarmonyMethod(Method(typeof(SharedResources), nameof(SharedResources.PayerTranspiler)));
+        foreach (MethodInfo m in moneyMethods)
+        {
+            harmony.Patch(m, transpiler: payerTranspiler);
+        }
+        patchedCount = patched.Count;
 
         var transpiler = new HarmonyMethod(Method(typeof(Patcher), nameof(RedirectTranspiler)));
         foreach (MethodBase inliner in inliners)
