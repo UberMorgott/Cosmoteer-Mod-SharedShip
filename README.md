@@ -1,6 +1,6 @@
 # Shared Ship (Cosmoteer 0.30.5, Career co-op)
 
-**Steam Workshop:** https://steamcommunity.com/sharedfiles/filedetails/?id=3828324355
+**Steam Workshop:** <https://steamcommunity.com/sharedfiles/filedetails/?id=3828324355>
 (texts for all 8 languages in [`docs/workshop/`](docs/workshop); published with
 `E:\DEV\cosmoteer\Energy\tools\workshop-publish` from the installed mod folder, which holds the hidden `.workshop` ID file).
 
