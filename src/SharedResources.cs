@@ -9,7 +9,6 @@ using Cosmoteer.Ships;
 using Cosmoteer.Ships.Crew.Jobs;
 using Cosmoteer.Ships.Resources;
 using HarmonyLib;
-using Halfling.Network;
 
 namespace SharedShip;
 
@@ -104,8 +103,6 @@ internal static class SharedResources
     public static bool RejectForgedIssuer(MPMoveResourcesInput __instance, GameRoot game, int playerIndex)
     {
         return __instance.TradeType is not (TradeType.Buy or TradeType.Sell)
-            || __instance.ManualID.PlayerID is not MessengerID claimed
-            || !game.HumanPlayersByID.TryGetValue(claimed, out int claimedIndex)
-            || claimedIndex == playerIndex;
+            || SharedRules.IsHonestIssuer(SharedRules.ConnectedPlayerIndex(__instance.ManualID.PlayerID, game.HumanPlayersByID), playerIndex);
     }
 }

@@ -4,7 +4,6 @@ using Cosmoteer.Modes.Career;
 using Cosmoteer.Ships;
 using Cosmoteer.Ships.Commands;
 using Cosmoteer.Ships.Crew.Jobs;
-using Halfling.Network;
 
 namespace SharedShip;
 
@@ -19,27 +18,10 @@ namespace SharedShip;
 ///   - the sim mode type and CareerSimModeManager.IsHumanPlayerAllegiance (0 &lt;= index &lt; Rules.MaxPlayers).
 /// Nothing local (LocalPlayerIndex, settings, wall clock) is used unless the caller passes it in, exactly like vanilla.
 /// </summary>
-internal static class SharedRules
+internal static partial class SharedRules
 {
-    /// <summary>Ship-name tag that marks a ship as shared. Case-sensitive, anywhere in the name.</summary>
-    public const string Tag = "[S]";
-
-    /// <summary>
-    /// True when the ship's name carries <see cref="Tag"/>. No cache on purpose: an ordinal search for a 3-char needle in a
-    /// short name is vectorized and allocation-free, i.e. no slower than any per-ship cache lookup (ConditionalWeakTable
-    /// needs a hash + lookup), and it can never go stale.
-    /// </summary>
-    public static bool HasTag(Ship ship)
-    {
-        string? name = ship.Metadata.PlainShipName;
-        return name != null && name.Contains(Tag, StringComparison.Ordinal);
-    }
-
-    /// <summary>Name with every occurrence of the tag removed and trimmed (may be empty; sanitize before use).</summary>
-    public static string WithoutTag(string name) => name.Replace(Tag, string.Empty, StringComparison.Ordinal).Trim();
-
-    /// <summary>Name with the tag prepended.</summary>
-    public static string WithTag(string name) => Tag + " " + name;
+    /// <summary>True when the ship's name carries <see cref="Tag"/>.</summary>
+    public static bool HasTag(Ship ship) => HasTag(ship.Metadata.PlainShipName);
 
     /// <summary>
     /// Extra permission granted by this mod on top of vanilla ownership: <paramref name="playerIndex"/> is another human
@@ -58,7 +40,7 @@ internal static class SharedRules
     public static bool IsTeammateOfOwner(Ship ship, int playerIndex)
     {
         int owner = ship.Metadata.PlayerIndex;
-        if (playerIndex < 0 || owner < 0 || owner == playerIndex)
+        if (!AreDistinctPlayers(owner, playerIndex))
         {
             return false;
         }
@@ -99,14 +81,11 @@ internal static class SharedRules
     public static int PayerIndex(ResourceTransferJob job)
     {
         Ship ship = job.Ship!;
-        if (job.ManualID?.PlayerID is MessengerID issuer
-            && job.Game is GameRoot game
-            && game.HumanPlayersByID.TryGetValue(issuer, out int index)
-            && IsTeammateOfOwner(ship, index))
-        {
-            return index;
-        }
-        return ship.Metadata.PlayerIndex;
+        return job.Game is GameRoot game
+            && ConnectedPlayerIndex(job.ManualID?.PlayerID, game.HumanPlayersByID) is int index
+            && IsTeammateOfOwner(ship, index)
+            ? index
+            : ship.Metadata.PlayerIndex;
     }
 
     // ---- Replacements for the vanilla CommandManager members (bodies mirror CommandManager.cs:327-737 of 0.30.5). ----

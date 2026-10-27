@@ -21,6 +21,8 @@
     <GameBin>D:\Steam\steamapps\common\Cosmoteer\Bin</GameBin>
     <!-- Yet Another Mod Loader (workshop 3577650065): ships the only 0Harmony.dll the loader accepts. -->
     <ModLoaderDir>D:\Steam\steamapps\workshop\content\799600\3577650065</ModLoaderDir>
+    <!-- tests\ is its own project; keep its sources and build output out of the mod. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);tests\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <!--
