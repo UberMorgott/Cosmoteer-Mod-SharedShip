@@ -4,10 +4,13 @@
 (texts for all 8 languages in [`docs/workshop/`](docs/workshop); published with
 `E:\DEV\cosmoteer\Energy\tools\workshop-publish` from the installed mod folder, which holds the hidden `.workshop` ID file).
 
-Mark one (or a few) of your ships as **shared**: every human player in the same Career game can then command it
-(move/attack/strafe, direct control, weapons and targets, crew and resources, toggles, paint) and build/edit/repair on
-it. The ship also shows up in each teammate's own-ship views (control groups, select-own, FTL readiness, comms).
-Ships without the tag stay 100% vanilla.
+Mark one (or a few) of your ships as **shared**: for every human player in the same Career game it then behaves as
+their own ship. They can command it (move/attack/strafe, direct control, weapons and targets, crew and resources,
+toggles, paint) and build/edit/repair/salvage on it, and the game treats it as theirs ship-to-ship too: its crew helps
+build and repair their ships (and theirs help it) under *My Ships Only* construction assistance, construction resources
+flow both ways between it and their ships, crew haul between them, and it is never offered as a trade partner. The
+ship also shows up in each teammate's own-ship views (control groups, select-own, FTL readiness, comms, crew picking).
+Two private ships of different players stay separate. Ships without the tag stay 100% vanilla.
 
 Languages: every language the game ships (en, de, es, fr, ja, pt-br, ru, zh-cn), in `strings/`.
 
@@ -20,11 +23,10 @@ Languages: every language the game ships (en, de, es, fr, ja, pt-br, ru, zh-cn),
 - **Myself** in the same menu takes the selected ship(s): a teammate's shared ship becomes your private ship.
 - Picking a player in that menu (vanilla) transfers the ship to them; a shared ship also becomes private (tag
   removed). Any player with shared access may do this; other players' non-shared ships stay non-transferable.
-- The ship keeps its real owner (money, upkeep, fleet counts, ownership-based rules are the owner's).
-- Construction assistance from teammates' ships follows the vanilla per-ship setting: set it to *Allied* if teammates'
-  ships should help build/supply it.
-- Teammates building their own ships can draw construction resources from the shared ship. Resource trades from
-  the shared ship pay or charge the player who makes the trade, not the owner.
+- The ship keeps its real owner for per-player accounting (money, upkeep, fleet counts, crew counts and crew limit).
+- Construction assistance: *My Ships Only* on the shared ship helps every teammate's ships, and on a teammate's ship
+  it helps the shared ship, exactly like between one player's own ships.
+- Resource trades from the shared ship pay or charge the player who makes the trade, not the owner.
 
 ## Install (every player)
 
@@ -45,6 +47,11 @@ Languages: every language the game ships (en, de, es, fr, ja, pt-br, ru, zh-cn),
 - Harmony prefixes on `CommandManager.IsCommandableBy / CanExecuteCommandsFrom / CanExecuteCrewCommandsFrom` and the
   three `...LocalPlayer` getters, a postfix on `SimShipsManager.LocalPlayerShips`, and a prefix/postfix on
   `MPSetShipInfoInput.Execute` that cancels teammates' direct-control commands when the tag is removed.
+- Ship-to-ship ownership: a postfix on `Ship.IsSamePlayerAs(Ship)` adds `SharedRules.IsSharedPair` (ships of two
+  different Career humans, at least one shared). That one vanilla predicate drives Owned construction/repair assist,
+  construction resource sourcing and crew-carried resources, buyable-ship exclusion and hauling routes. Postfixes on
+  `SimModeManager.CanSalvage` (own-ship salvage) and `CrewSoul.IsLocalPlayerCrew` (UI) cover the two places that
+  compare owners directly. Trade money is routed to the issuing player in `ResourceTransferJob`.
 - `MPTransferShipControlInput.Execute` is replaced by a copy that also accepts senders with shared access and strips
   the tag on transfer; a postfix on `CareerGameModeManager.CreateModeSpecificGui` adds the menu entries.
 - Cosmoteer.dll is ReadyToRun, so some precompiled methods contain inlined copies of those checks. The mod reads the
@@ -60,7 +67,10 @@ Languages: every language the game ships (en, de, es, fr, ja, pt-br, ru, zh-cn),
 - Two players building on the same shared ship at the same moment can override each other's pending blueprint edits
   (each build input is applied in order).
 - Build/repair costs are charged to the player who issues the build, not the owner.
-- Crew transfer between teammates' ships and the shared ship stays vanilla (owner-based).
+- Crew stay per-player: crew moved between a teammate's ship and the shared ship change owner and count against the
+  receiving owner's crew limit (vanilla), and homeless crew only adopt their own owner's ships. Lifting this would let
+  players exceed the crew limit by shuffling crew through the shared ship.
+- A shared ship cannot salvage parts of a teammate's private ship (vanilla checks the salvaging ship's owner).
 - `GetShipsForPlayer` is not changed (sim code counts ships per owner), so owner-only systems (e.g. fleet limits,
   owner's ship counters) still see the shared ship only under its owner.
 - Hotkey Ctrl+Shift+H is fixed; it is ignored while a dialog is open.

@@ -12,7 +12,8 @@ Marquez un ou plusieurs de vos vaisseaux comme [b]partagés[/b] : chaque joueur 
 [*]utiliser ses armes et choisir ses cibles ;
 [*]gérer son équipage, ses ressources, ses interrupteurs et sa peinture ;
 [*]construire, modifier et réparer dessus ;
-[*]puiser dans ses ressources pour construire ses propres vaisseaux et les échanger : l'argent est versé au joueur qui fait l'échange (ou payé par lui).
+[*]l'utiliser exactement comme l'un de ses propres vaisseaux : son équipage aide à construire et réparer leurs vaisseaux et les leurs l'aident, les ressources de construction circulent dans les deux sens, l'équipage transporte le fret entre eux, et il peut être démantelé ;
+[*]échanger ses ressources : l'argent est versé au joueur qui fait l'échange (ou payé par lui).
 [/list]
 Le vaisseau apparaît aussi dans les listes de vaisseaux de chaque coéquipier (groupes de contrôle, sélection de ses vaisseaux, préparation au FTL, communications). Les vaisseaux non partagés restent 100 % vanilla. Le vaisseau garde son vrai propriétaire : l'argent, l'entretien et le décompte de la flotte restent les siens.
 
@@ -22,7 +23,7 @@ Le vaisseau apparaît aussi dans les listes de vaisseaux de chaque coéquipier (
 [*]Raccourci : [b]Ctrl+Maj+H[/b]. Mettre [b][S][/b] n'importe où dans le nom du vaisseau fait la même chose.
 [*][b]Moi-même[/b] dans le même menu prend le vaisseau sélectionné : le vaisseau partagé d'un coéquipier devient votre vaisseau privé.
 [*]Choisir un joueur (vanilla) lui transfère le vaisseau ; un vaisseau partagé redevient alors privé.
-[*]Pour que les vaisseaux de vos coéquipiers aident à le construire ou à l'approvisionner, réglez sur ces vaisseaux [b]Aide à la construction[/b] sur [i]Tous les vaisseaux alliés[/i].
+[*][b]Aide à la construction[/b] réglée sur [i]Mes vaisseaux uniquement[/i] couvre aussi le vaisseau partagé et ceux de vos coéquipiers, comme entre vos propres vaisseaux.
 [/list]
 
 [h2]Prérequis[/h2]
@@ -37,7 +38,7 @@ Le vaisseau apparaît aussi dans les listes de vaisseaux de chaque coéquipier (
 [*]Rendre un vaisseau privé annule seulement le contrôle direct des coéquipiers ; leurs autres ordres restent jusqu'à être remplacés.
 [*]Si deux joueurs construisent en même temps sur le même vaisseau partagé, leurs modifications en attente peuvent s'écraser.
 [*]Les coûts de construction et de réparation sont payés par le joueur qui les ordonne.
-[*]Le transfert d'équipage reste lié au propriétaire (vanilla).
+[*]L'équipage reste propre à chaque joueur : les membres transférés entre le vaisseau d'un coéquipier et le vaisseau partagé comptent dans la limite d'équipage du nouveau propriétaire (vanilla).
 [/list]
 
 Langues : anglais, russe, allemand, espagnol, français, japonais, portugais (Brésil), chinois simplifié.

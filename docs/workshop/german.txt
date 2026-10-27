@@ -12,7 +12,8 @@ Markiere eines oder mehrere deiner Schiffe als [b]gemeinsam[/b], dann kann jeder
 [*]seine Waffen abfeuern und Ziele wählen;
 [*]Crew, Ressourcen, Schalter und Lackierung verwalten;
 [*]daran bauen, es umbauen und reparieren;
-[*]seine Ressourcen für den Bau eigener Schiffe nutzen und damit handeln: Das Geld erhält (oder zahlt) der Spieler, der den Handel abschließt.
+[*]es genau wie ein eigenes Schiff nutzen: Seine Crew hilft beim Bauen und Reparieren ihrer Schiffe und ihre Crews helfen ihm, Baumaterial fließt in beide Richtungen, die Crew transportiert Fracht zwischen ihnen, und es lässt sich verwerten;
+[*]mit seinen Ressourcen handeln: Das Geld erhält (oder zahlt) der Spieler, der den Handel abschließt.
 [/list]
 Das Schiff erscheint außerdem in den eigenen Schiffslisten jedes Mitspielers (Kontrollgruppen, eigene Schiffe auswählen, FTL-Bereitschaft, Kommunikation). Nicht geteilte Schiffe bleiben komplett Vanilla. Der Besitzer bleibt gleich: Geld, Unterhalt und Flottenzählung bleiben beim Besitzer.
 
@@ -22,7 +23,7 @@ Das Schiff erscheint außerdem in den eigenen Schiffslisten jedes Mitspielers (K
 [*]Tastenkürzel: [b]Strg+Umschalt+H[/b]. [b][S][/b] irgendwo im Schiffsnamen bewirkt dasselbe.
 [*][b]Mich selbst[/b] im selben Menü übernimmt das gewählte Schiff: Das gemeinsame Schiff eines Mitspielers wird zu deinem privaten Schiff.
 [*]Die Wahl eines Spielers (Vanilla) überträgt ihm das Schiff; ein gemeinsames Schiff wird dabei privat.
-[*]Damit Schiffe von Mitspielern beim Bau und bei der Versorgung helfen, bei diesen Schiffen [b]Bauunterstützung[/b] auf [i]Alle verbündeten Schiffe[/i] stellen.
+[*][b]Bauunterstützung[/b] auf [i]Nur meine Schiffe[/i] gilt auch für das gemeinsame Schiff und die Schiffe der Mitspieler – genau wie zwischen deinen eigenen Schiffen.
 [/list]
 
 [h2]Voraussetzungen[/h2]
@@ -37,7 +38,7 @@ Das Schiff erscheint außerdem in den eigenen Schiffslisten jedes Mitspielers (K
 [*]Wird ein Schiff privat gemacht, endet nur die direkte Steuerung der Mitspieler; ihre übrigen Befehle bleiben, bis sie ersetzt werden.
 [*]Bauen zwei Spieler gleichzeitig am selben gemeinsamen Schiff, können sich ihre ausstehenden Änderungen gegenseitig überschreiben.
 [*]Bau- und Reparaturkosten zahlt der Spieler, der sie anordnet.
-[*]Crew-Transfer richtet sich wie in Vanilla nach dem Besitzer.
+[*]Die Crew bleibt pro Spieler: Crewmitglieder, die zwischen dem Schiff eines Mitspielers und dem gemeinsamen Schiff wechseln, zählen wie in Vanilla zum Crewlimit des neuen Besitzers.
 [/list]
 
 Sprachen: Englisch, Russisch, Deutsch, Spanisch, Französisch, Japanisch, Portugiesisch (Brasilien), vereinfachtes Chinesisch.

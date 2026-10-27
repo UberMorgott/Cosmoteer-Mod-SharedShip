@@ -12,7 +12,8 @@ Mark one or more of your ships as [b]shared[/b], and every human player in the s
 [*]fire its weapons and pick targets;
 [*]manage its crew, resources, toggles and paint;
 [*]build, edit and repair on it;
-[*]draw on its stored resources when building their own ships, and trade them: the money goes to (or comes from) the player who makes the trade.
+[*]use it exactly like one of their own ships: its crew helps build and repair their ships and theirs help it, construction resources flow both ways, crew haul between them, and they can salvage it;
+[*]trade its resources: the money goes to (or comes from) the player who makes the trade.
 [/list]
 The ship also appears in each teammate's own-ship lists (control groups, select own ships, FTL readiness, comms). Ships that are not shared stay 100% vanilla. The ship keeps its real owner: money, upkeep and fleet counts stay with the owner.
 
@@ -22,7 +23,7 @@ The ship also appears in each teammate's own-ship lists (control groups, select 
 [*]Shortcut: [b]Ctrl+Shift+H[/b]. Putting [b][S][/b] anywhere in the ship name does the same.
 [*][b]Myself[/b] in the same menu takes the selected ship: a teammate's shared ship becomes your private ship.
 [*]Picking a player (vanilla) transfers the ship to them; a shared ship also becomes private.
-[*]For teammates' ships to help build or supply it, set [b]Construction Assistance[/b] on those ships to [i]All Allied Ships[/i].
+[*][b]Construction Assistance[/b] set to [i]My Ships Only[/i] also covers the shared ship and teammates' ships, just like between your own ships.
 [/list]
 
 [h2]Requirements[/h2]
@@ -37,7 +38,7 @@ The ship also appears in each teammate's own-ship lists (control groups, select 
 [*]Making a ship private cancels teammates' direct control only; their other queued orders stay until replaced.
 [*]Two players building on the same shared ship at the same moment can override each other's pending edits.
 [*]Build and repair costs are paid by the player who orders them.
-[*]Crew transfer stays owner-based (vanilla).
+[*]Crew stay per player: crew moved between a teammate's ship and the shared ship count against the receiving owner's crew limit (vanilla).
 [/list]
 
 Languages: English, Russian, German, Spanish, French, Japanese, Portuguese (Brazil), Simplified Chinese.

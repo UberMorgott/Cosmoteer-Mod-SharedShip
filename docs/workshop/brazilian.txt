@@ -12,7 +12,8 @@ Marque uma ou mais das suas naves como [b]compartilhadas[/b] e qualquer jogador 
 [*]disparar suas armas e escolher alvos;
 [*]gerenciar tripulação, recursos, interruptores e pintura;
 [*]construir, editar e reparar nela;
-[*]usar os recursos armazenados nela para construir as próprias naves e negociá-los: o dinheiro vai para (ou sai de) quem fez a negociação.
+[*]usá-la exatamente como uma nave própria: a tripulação dela ajuda a construir e reparar as naves deles e as deles ajudam ela, os recursos de construção circulam nos dois sentidos, a tripulação transporta carga entre elas e é possível desmontá-la;
+[*]negociar os recursos dela: o dinheiro vai para (ou sai de) quem fez a negociação.
 [/list]
 A nave também aparece nas listas de naves próprias de cada colega (grupos de controle, selecionar naves próprias, prontidão para FTL, comunicações). Naves não compartilhadas continuam 100% vanilla. A nave mantém o dono real: dinheiro, manutenção e contagem da frota continuam com o dono.
 
@@ -22,7 +23,7 @@ A nave também aparece nas listas de naves próprias de cada colega (grupos de c
 [*]Atalho: [b]Ctrl+Shift+H[/b]. Colocar [b][S][/b] em qualquer parte do nome da nave faz o mesmo.
 [*][b]Eu mesmo[/b] no mesmo menu pega a nave selecionada: a nave compartilhada de um colega vira sua nave privada.
 [*]Escolher um jogador (vanilla) transfere a nave para ele; uma nave compartilhada também vira privada.
-[*]Para que as naves dos colegas ajudem a construir ou abastecer a nave, ajuste nessas naves o [b]Auxílio de construção[/b] para [i]Todas as naves aliadas[/i].
+[*][b]Auxílio de construção[/b] em [i]Apenas minhas naves[/i] também vale para a nave compartilhada e para as naves dos colegas, como entre as suas próprias naves.
 [/list]
 
 [h2]Requisitos[/h2]
@@ -37,7 +38,7 @@ A nave também aparece nas listas de naves próprias de cada colega (grupos de c
 [*]Tornar uma nave privada cancela apenas o controle direto dos colegas; as outras ordens deles continuam até serem substituídas.
 [*]Se dois jogadores construírem ao mesmo tempo na mesma nave compartilhada, as edições pendentes podem se sobrescrever.
 [*]Os custos de construção e reparo são pagos por quem deu a ordem.
-[*]A transferência de tripulação continua baseada no dono (vanilla).
+[*]A tripulação é de cada jogador: tripulantes transferidos entre a nave de um colega e a nave compartilhada contam no limite de tripulação do novo dono (vanilla).
 [/list]
 
 Idiomas: inglês, russo, alemão, espanhol, francês, japonês, português (Brasil), chinês simplificado.
