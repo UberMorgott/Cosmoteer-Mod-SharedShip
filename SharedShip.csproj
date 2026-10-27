@@ -1,12 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    Game runs on net10.0 (Bin\Cosmoteer.runtimeconfig.json). Only the .NET 8 SDK is installed here,
-    so we compile as net8.0 against the publicized game assemblies; the runtime (10.0) loads it fine.
+    Game runs on net10.0 (Bin\Cosmoteer.runtimeconfig.json), so the mod targets net10.0 too.
     lib\ holds publicized (stripped) copies of Cosmoteer.dll / HalflingCore.dll (target PublicizeGameAssemblies;
     needs the global tool: dotnet tool install -g BepInEx.AssemblyPublicizer.Cli).
   -->
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <AssemblyName>SharedShip</AssemblyName>
     <RootNamespace>SharedShip</RootNamespace>
     <LangVersion>12.0</LangVersion>
@@ -16,32 +15,12 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <GenerateDependencyFile>false</GenerateDependencyFile>
-    <!-- Game assemblies reference System.Runtime 10.0 while we compile against 8.0 reference assemblies. -->
-    <NoWarn>$(NoWarn);CS1701;CS1702;CS1705;MSB3277</NoWarn>
     <GameBin>D:\Steam\steamapps\common\Cosmoteer\Bin</GameBin>
     <!-- Yet Another Mod Loader (workshop 3577650065): ships the only 0Harmony.dll the loader accepts. -->
     <ModLoaderDir>D:\Steam\steamapps\workshop\content\799600\3577650065</ModLoaderDir>
     <!-- tests\ is its own project; keep its sources and build output out of the mod. -->
     <DefaultItemExcludes>$(DefaultItemExcludes);tests\**</DefaultItemExcludes>
   </PropertyGroup>
-
-  <!--
-    The game assemblies reference System.Runtime 10.0, which the net8.0 reference assemblies cannot satisfy
-    (CS1705). Swap the implicit net8 framework references for the net10.0 reference pack from NuGet.
-  -->
-  <PropertyGroup>
-    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
-    <NetRefPackVersion>10.0.0</NetRefPackVersion>
-    <NetRefPackDir>$([MSBuild]::EnsureTrailingSlash('$(NuGetPackageRoot)'))microsoft.netcore.app.ref\$(NetRefPackVersion)\ref\net10.0\</NetRefPackDir>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageDownload Include="Microsoft.NETCore.App.Ref" Version="[$(NetRefPackVersion)]" />
-  </ItemGroup>
-  <Target Name="AddNet10RefPack" BeforeTargets="ResolveAssemblyReferences">
-    <ItemGroup>
-      <Reference Include="$(NetRefPackDir)*.dll" Private="false" />
-    </ItemGroup>
-  </Target>
 
   <!-- Regenerate lib\ (gitignored) from the installed game when missing or older than the game DLL. -->
   <Target Name="PublicizeGameAssemblies" BeforeTargets="ResolveAssemblyReferences"
