@@ -2,11 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Reflection.Emit;
+using Cosmoteer.Crew;
 using Cosmoteer.Game.Multiplayer.MPInputs;
+using Cosmoteer.Modes;
 using Cosmoteer.Modes.Career;
+using Cosmoteer.Ships;
 using Cosmoteer.Ships.Commands;
 using Cosmoteer.Ships.Crew.Jobs;
 using Cosmoteer.Simulation;
@@ -96,7 +100,14 @@ internal static class Patcher
         MethodInfo transfer = Method(typeof(MPTransferShipControlInput), nameof(MPTransferShipControlInput.Execute));
         MethodInfo careerGui = Method(typeof(CareerGameModeManager), nameof(CareerGameModeManager.CreateModeSpecificGui));
 
-        MethodInfo usableShipsFilter = SharedResources.UsableShipsFilter();
+        // (vanilla ownership predicate, postfix adding shared access to it)
+        var ownershipTargets = new (MethodInfo Original, string Postfix)[]
+        {
+            (typeof(Ship).GetMethod(nameof(Ship.IsSamePlayerAs), new[] { typeof(Ship) }) ?? throw new MissingMethodException(nameof(Ship), nameof(Ship.IsSamePlayerAs)),
+                nameof(OwnershipPostfixes.IsSamePlayerAs)),
+            (Method(typeof(SimModeManager), nameof(SimModeManager.CanSalvage)), nameof(OwnershipPostfixes.CanSalvage)),
+            (Getter(typeof(CrewSoul), nameof(CrewSoul.IsLocalPlayerCrew)), nameof(OwnershipPostfixes.IsLocalPlayerCrew)),
+        };
         MethodInfo moveResources = Method(typeof(MPMoveResourcesInput), nameof(MPMoveResourcesInput.Execute));
         var moneyMethods = new List<MethodInfo>();
         foreach (var (name, _) in SharedResources.MoneyMethods)
@@ -110,8 +121,9 @@ internal static class Patcher
             } ?? throw new MissingMethodException(job.FullName, name));
         }
 
-        var patched = new List<MethodBase> { localPlayerShips, setShipInfo, transfer, careerGui, usableShipsFilter, moveResources };
+        var patched = new List<MethodBase> { localPlayerShips, setShipInfo, transfer, careerGui, moveResources };
         patched.AddRange(moneyMethods);
+        patched.AddRange(ownershipTargets.Select(t => t.Original));
         foreach (var t in commandTargets)
         {
             Redirects[t.Original.MethodHandle] = Method(typeof(SharedRules), t.Replacement);
@@ -131,7 +143,10 @@ internal static class Patcher
             postfix: new HarmonyMethod(Method(typeof(RevokeOnUntag), nameof(RevokeOnUntag.Postfix))));
         harmony.Patch(transfer, prefix: new HarmonyMethod(Method(typeof(TransferShared), nameof(TransferShared.Prefix))));
         harmony.Patch(careerGui, postfix: new HarmonyMethod(Method(typeof(ShareMenu), nameof(ShareMenu.CreateModeSpecificGuiPostfix))));
-        harmony.Patch(usableShipsFilter, transpiler: new HarmonyMethod(Method(typeof(SharedResources), nameof(SharedResources.UsableShipsFilterTranspiler))));
+        foreach (var t in ownershipTargets)
+        {
+            harmony.Patch(t.Original, postfix: new HarmonyMethod(Method(typeof(OwnershipPostfixes), t.Postfix)));
+        }
         harmony.Patch(moveResources, prefix: new HarmonyMethod(Method(typeof(SharedResources), nameof(SharedResources.RejectForgedIssuer))));
         var payerTranspiler = new HarmonyMethod(Method(typeof(SharedResources), nameof(SharedResources.PayerTranspiler)));
         foreach (MethodInfo m in moneyMethods)
@@ -245,6 +260,36 @@ internal static class Patcher
     {
         return type.GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)?.GetMethod
             ?? throw new MissingMethodException(type.FullName, "get_" + name);
+    }
+}
+
+/// <summary>
+/// Postfixes that extend vanilla ownership predicates with shared access (vanilla true stays true). Only CommandManager
+/// (player-to-ship) and Ship.IsSamePlayerAs (ship-to-ship) decide ownership in vanilla sim code; CanSalvage and
+/// IsLocalPlayerCrew are the two predicates that compare owners directly instead of calling either.
+/// Per-player accounting (crew caps, crew ownership, wallets, GetShipsForPlayer) deliberately stays with the real owner.
+/// </summary>
+internal static class OwnershipPostfixes
+{
+    /// <summary>
+    /// Sim: Owned construction/repair assist (SimModeManager.cs:356), construction sourcing both ways and crew-carried
+    /// resources (ResourceManager.cs:3871-3991), not buying from own ships (:4016), hauling sink (ResourceTransferJob.cs:805).
+    /// </summary>
+    public static void IsSamePlayerAs(Ship __instance, Ship ship, ref bool __result)
+    {
+        __result = __result || SharedRules.IsSharedPair(__instance, ship);
+    }
+
+    /// <summary>Sim (SalvageCommand) and UI: salvaging parts of one's own ship covers shared ships.</summary>
+    public static void CanSalvage(int sourcePlayer, Ship ship, bool allowSalvageOwnShip, ref bool __result)
+    {
+        __result = __result || (allowSalvageOwnShip && SharedRules.IsSharedWith(ship, sourcePlayer));
+    }
+
+    /// <summary>UI only (crew picking, O2/distance warnings): crew of a ship shared with the local player.</summary>
+    public static void IsLocalPlayerCrew(CrewSoul __instance, ref bool __result)
+    {
+        __result = __result || (__instance.HomeShip is Ship home && __instance.Game is { } game && SharedRules.IsSharedWith(home, game.LocalPlayerIndex));
     }
 }
 

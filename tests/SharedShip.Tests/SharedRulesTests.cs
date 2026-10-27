@@ -60,6 +60,20 @@ public class SharedRulesTests
         Assert.Equal(expected, SharedRules.AreDistinctPlayers(owner, player));
     }
 
+    [Theory]
+    [InlineData(true, 0, false, 1, true)] // shared ship of 0 is "own" for 1's private ship
+    [InlineData(true, 0, true, 1, true)] // two shared ships of different players
+    [InlineData(false, 0, false, 1, false)] // two private ships of different players stay apart
+    [InlineData(true, 0, false, 0, false)] // same owner: vanilla decides, sharing adds nothing
+    [InlineData(true, 0, false, -1, false)] // AI-owned ship
+    [InlineData(true, -1, false, 0, false)] // tagged AI ship
+    [InlineData(true, 0, false, -4, false)] // spectator/"all" index
+    public void IsSharedPair_OneSharedShipOfTwoDistinctPlayers(bool aTagged, int aOwner, bool bTagged, int bOwner, bool expected)
+    {
+        Assert.Equal(expected, SharedRules.IsSharedPair(aTagged, aOwner, bTagged, bOwner));
+        Assert.Equal(expected, SharedRules.IsSharedPair(bTagged, bOwner, aTagged, aOwner)); // symmetric
+    }
+
     [Fact]
     public void ConnectedPlayerIndex_ResolvesConnectedPlayers()
     {

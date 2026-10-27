@@ -7,16 +7,13 @@ using Cosmoteer.Game;
 using Cosmoteer.Game.Multiplayer.MPInputs;
 using Cosmoteer.Ships;
 using Cosmoteer.Ships.Crew.Jobs;
-using Cosmoteer.Ships.Resources;
 using HarmonyLib;
 
 namespace SharedShip;
 
 /// <summary>
-/// Makes a shared ship's economy behave as if teammates owned it (0.30.5):
-///   - Construction sourcing: ResourceManager.GetUsableConstructionResourceShips (ResourceManager.cs:3868) filters
-///     nearby ships with Ship.IsSamePlayerAs, so a teammate building their own ship never sees the shared ship's storage.
-///     Its lambda now uses <see cref="SharedRules.IsSamePlayerOrSharedWith"/>.
+/// Per-player wallet for trades on a shared ship (0.30.5). Everything else economic (construction sourcing, hauling,
+/// assist) follows Ship.IsSamePlayerAs, see <see cref="OwnershipPostfixes"/>.
 ///   - Trade money: ResourceTransferJob credits/debits job.Ship.Metadata.PlayerIndex (ResourceTransferJob.cs:189-197,
 ///     1030, 1471-1483, 1698-1706, 1729-1737), i.e. the owner of the ship holding the job; selling from a shared ship puts
 ///     the job on the shared ship (MPMoveResourcesInput.GetJobOwner), so the owner got paid. Those reads now use
@@ -28,18 +25,6 @@ namespace SharedShip;
 /// </summary>
 internal static class SharedResources
 {
-    /// <summary>The compiler-generated filter lambda of ResourceManager.GetUsableConstructionResourceShips.</summary>
-    public static MethodInfo UsableShipsFilter()
-    {
-        MethodInfo[] found = typeof(ResourceManager)
-            .GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)
-            .Where(m => m.Name.StartsWith("<GetUsableConstructionResourceShips>b__", StringComparison.Ordinal))
-            .ToArray();
-        return found.Length == 1
-            ? found[0]
-            : throw new MissingMethodException($"expected 1 GetUsableConstructionResourceShips lambda, found {found.Length}");
-    }
-
     /// <summary>ResourceTransferJob members that move money, with how many owner reads each must contain (0.30.5).</summary>
     public static readonly (string Name, int OwnerReads)[] MoneyMethods =
     {
@@ -49,26 +34,6 @@ internal static class SharedResources
         ("OnAddedToSim", 3),
         ("OnRemovingFromSim", 3),
     };
-
-    public static IEnumerable<CodeInstruction> UsableShipsFilterTranspiler(IEnumerable<CodeInstruction> instructions)
-    {
-        MethodInfo vanilla = typeof(Ship).GetMethod(nameof(Ship.IsSamePlayerAs), new[] { typeof(Ship) })!;
-        MethodInfo shared = typeof(SharedRules).GetMethod(nameof(SharedRules.IsSamePlayerOrSharedWith))!;
-        var list = instructions.ToList();
-        int replaced = 0;
-        foreach (CodeInstruction ins in list)
-        {
-            if (ins.Calls(vanilla))
-            {
-                // Instance shape (candidate, constructing) == static shape (Ship, Ship).
-                ins.opcode = OpCodes.Call;
-                ins.operand = shared;
-                replaced++;
-            }
-        }
-        // All-or-nothing: an unexpected body means a game update; throwing rolls every patch back.
-        return replaced == 1 ? list : throw new InvalidOperationException($"construction filter: {replaced} IsSamePlayerAs calls");
-    }
 
     /// <summary>Rewrites "this.Ship.Metadata.PlayerIndex" into "SharedRules.PayerIndex(this)".</summary>
     public static IEnumerable<CodeInstruction> PayerTranspiler(IEnumerable<CodeInstruction> instructions, MethodBase original)

@@ -8,7 +8,8 @@ using Cosmoteer.Ships.Crew.Jobs;
 namespace SharedShip;
 
 /// <summary>
-/// The single source of truth for "may player P command ship S".
+/// The single source of truth for "ship S is player P's own" (player-to-ship, via CommandManager and CanSalvage) and
+/// "ships A and B belong to one player" (ship-to-ship, via Ship.IsSamePlayerAs). Both reduce to <see cref="IsSharedWith"/>.
 ///
 /// Determinism: in lockstep MP every client runs AllowMPInput + Execute for every input and compares state hashes
 /// (BaseMPManager), and Execute bodies call CommandManager.IsCommandableBy(senderIndex). So the answer must be
@@ -59,13 +60,13 @@ internal static partial class SharedRules
     }
 
     /// <summary>
-    /// Construction-source filter (replaces Ship.IsSamePlayerAs in ResourceManager.GetUsableConstructionResourceShips):
-    /// vanilla same-player, plus <paramref name="candidate"/> is shared with the owner of the ship under construction.
-    /// One direction only: a shared ship supplies teammates' ships, teammates' private ships never supply the shared one.
+    /// Ship-to-ship half of the rule, added to vanilla Ship.IsSamePlayerAs(Ship): two ships of different Career humans
+    /// count as one player's when either is shared. Symmetric.
     /// </summary>
-    public static bool IsSamePlayerOrSharedWith(Ship candidate, Ship constructing)
+    public static bool IsSharedPair(Ship a, Ship b)
     {
-        return candidate.IsSamePlayerAs(constructing) || IsSharedWith(candidate, constructing.Metadata.PlayerIndex);
+        int bOwner = b.Metadata.PlayerIndex;
+        return IsSharedPair(HasTag(a), a.Metadata.PlayerIndex, HasTag(b), bOwner) && IsTeammateOfOwner(a, bOwner);
     }
 
     /// <summary>

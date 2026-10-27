@@ -32,6 +32,13 @@ internal static partial class SharedRules
     public static bool AreDistinctPlayers(int owner, int playerIndex) => playerIndex >= 0 && owner >= 0 && owner != playerIndex;
 
     /// <summary>
+    /// Ships of two different players count as one player's ships when either of them is shared: a shared ship is "own"
+    /// for every teammate. Two private ships of different players stay apart. Not transitive on purpose.
+    /// </summary>
+    public static bool IsSharedPair(bool aTagged, int aOwner, bool bTagged, int bOwner) =>
+        (aTagged || bTagged) && AreDistinctPlayers(aOwner, bOwner);
+
+    /// <summary>
     /// Player index of a connected human player (GameRoot.HumanPlayersByID), or null when there is no id or the player is
     /// not connected (never was, or left).
     /// </summary>
