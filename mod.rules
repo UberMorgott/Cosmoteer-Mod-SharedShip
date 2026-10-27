@@ -1,6 +1,6 @@
 ID = "morgott.sharedship"
 Name = "Shared Ship (co-op)"
-Version = "0.3.1"
+Version = "0.3.2"
 Author = "Morgott"
 CompatibleGameVersions = ["0.30.5"]
 Description = "Career co-op: in the ship menu 'Transfer ship control...' pick 'Everyone (shared ship)' (or press Ctrl+Shift+H, or put [S] in the name) and every human player in the game can command it, fly it, fire its weapons, manage its crew and build on it. It also appears in each teammate's own-ship lists. Other ships stay vanilla. ALL players must run the same version of this mod. Requires Yet Another Mod Loader."
