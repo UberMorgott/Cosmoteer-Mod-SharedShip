@@ -1,0 +1,6 @@
+SharedShip
+{
+	ShareAll = "全員（共有船）"
+	MakePrivate = "共有を解除"
+	ToSelf = "自分"
+}

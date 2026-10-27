@@ -1,0 +1,6 @@
+SharedShip
+{
+	ShareAll = "Tout le monde (vaisseau partagé)"
+	MakePrivate = "Rendre privé"
+	ToSelf = "Moi-même"
+}

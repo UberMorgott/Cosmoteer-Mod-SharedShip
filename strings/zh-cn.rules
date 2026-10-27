@@ -1,0 +1,6 @@
+SharedShip
+{
+	ShareAll = "所有人（共享星舰）"
+	MakePrivate = "取消共享"
+	ToSelf = "自己"
+}

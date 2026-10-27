@@ -5,6 +5,8 @@ Mark one (or a few) of your ships as **shared**: every human player in the same 
 it. The ship also shows up in each teammate's own-ship views (control groups, select-own, FTL readiness, comms).
 Ships without the tag stay 100% vanilla.
 
+Languages: every language the game ships (en, de, es, fr, ja, pt-br, ru, zh-cn), in `strings/`.
+
 ## Usage
 
 - Select ship(s), open the ship menu **Transfer ship control...** (Career with 2+ players) and pick
