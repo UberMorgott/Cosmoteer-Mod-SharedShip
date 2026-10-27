@@ -1,5 +1,9 @@
 # Shared Ship (Cosmoteer 0.30.5, Career co-op)
 
+**Steam Workshop:** https://steamcommunity.com/sharedfiles/filedetails/?id=3828324355
+(texts for all 8 languages in [`docs/workshop/`](docs/workshop); published with
+`E:\DEV\cosmoteer\Energy\tools\workshop-publish` from the installed mod folder, which holds the hidden `.workshop` ID file).
+
 Mark one (or a few) of your ships as **shared**: every human player in the same Career game can then command it
 (move/attack/strafe, direct control, weapons and targets, crew and resources, toggles, paint) and build/edit/repair on
 it. The ship also shows up in each teammate's own-ship views (control groups, select-own, FTL readiness, comms).

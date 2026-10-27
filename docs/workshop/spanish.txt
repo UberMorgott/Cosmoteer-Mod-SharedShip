@@ -1,0 +1,42 @@
+Shared Ship (co-op)
+[h1]Shared Ship (co-op): nave compartida[/h1]
+[i]Todos los jugadores de una carrera cooperativa pueden comandar la misma nave y construir en ella.[/i]
+
+[h2]¿Encontraste un error? NO lo reportes en los comentarios[/h2]
+[b]Reporta los errores solo en GitHub:[/b] https://github.com/UberMorgott/Cosmoteer-Mod-SharedShip/issues
+
+[h2]Qué hace[/h2]
+Marca una o varias de tus naves como [b]compartidas[/b] y cualquier jugador humano de la misma carrera podrá:
+[list]
+[*]comandarla: mover, atacar, ametrallar en lateral, control directo;
+[*]disparar sus armas y elegir objetivos;
+[*]gestionar su tripulación, recursos, interruptores y pintura;
+[*]construir, editar y reparar en ella.
+[/list]
+La nave también aparece en las listas de naves propias de cada compañero (grupos de control, seleccionar naves propias, preparación FTL, comunicaciones). Las naves no compartidas quedan 100 % vanilla. La nave conserva a su dueño real: el dinero, el mantenimiento y el recuento de la flota siguen siendo del dueño.
+
+[h2]Cómo usarlo[/h2]
+[list]
+[*]Selecciona la(s) nave(s), abre en el menú de la nave [b]Transferir el control de la nave a…[/b] (carrera con 2+ jugadores) y elige [b]Todos (nave compartida)[/b]. En una nave compartida la opción dice [b]Hacer privada[/b].
+[*]Atajo: [b]Ctrl+Mayús+H[/b]. Poner [b][S][/b] en cualquier parte del nombre de la nave hace lo mismo.
+[*][b]Mí mismo[/b] en el mismo menú toma la nave seleccionada: la nave compartida de un compañero pasa a ser tu nave privada.
+[*]Elegir a un jugador (vanilla) le transfiere la nave; una nave compartida también se vuelve privada.
+[*]Para que las naves de tus compañeros ayuden a construirla o abastecerla, pon en esas naves [b]Ayuda en la construcción[/b] en [i]Todas las naves aliadas[/i].
+[/list]
+
+[h2]Requisitos[/h2]
+[list]
+[*][b]Yet Another Mod Loader[/b] (Workshop 3577650065), instalado según sus instrucciones.
+[*]Activa Shared Ship en la lista de mods del juego y [b]confía[/b] en su biblioteca allí.
+[*][b]Todos los jugadores deben usar exactamente la misma versión de este mod.[/b] Un jugador sin él, o con otra versión, se desincronizará.
+[/list]
+
+[h2]Limitaciones conocidas[/h2]
+[list]
+[*]Al hacer privada una nave solo se cancela el control directo de los compañeros; sus demás órdenes siguen hasta que se reemplacen.
+[*]Si dos jugadores construyen a la vez en la misma nave compartida, sus cambios pendientes pueden sobrescribirse.
+[*]Los costes de construcción y reparación los paga quien los ordena.
+[*]La transferencia de tripulación, el comercio de recursos y el dinero siguen dependiendo del dueño (vanilla).
+[/list]
+
+Idiomas: inglés, ruso, alemán, español, francés, japonés, portugués (Brasil), chino simplificado.

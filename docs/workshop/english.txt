@@ -1,0 +1,42 @@
+Shared Ship (co-op)
+[h1]Shared Ship (co-op)[/h1]
+[i]Let every player in a Career co-op game command and build on the same ship.[/i]
+
+[h2]Found a bug? Do NOT report it in the comments[/h2]
+[b]Report bugs only on GitHub:[/b] https://github.com/UberMorgott/Cosmoteer-Mod-SharedShip/issues
+
+[h2]What it does[/h2]
+Mark one or more of your ships as [b]shared[/b], and every human player in the same Career game can:
+[list]
+[*]command it: move, attack, strafe, direct control;
+[*]fire its weapons and pick targets;
+[*]manage its crew, resources, toggles and paint;
+[*]build, edit and repair on it.
+[/list]
+The ship also appears in each teammate's own-ship lists (control groups, select own ships, FTL readiness, comms). Ships that are not shared stay 100% vanilla. The ship keeps its real owner: money, upkeep and fleet counts stay with the owner.
+
+[h2]How to use[/h2]
+[list]
+[*]Select the ship(s), open the ship menu [b]Transfer Ship Control To...[/b] (Career with 2+ players) and pick [b]Everyone (shared ship)[/b]. On a shared ship the entry reads [b]Make private[/b].
+[*]Shortcut: [b]Ctrl+Shift+H[/b]. Putting [b][S][/b] anywhere in the ship name does the same.
+[*][b]Myself[/b] in the same menu takes the selected ship: a teammate's shared ship becomes your private ship.
+[*]Picking a player (vanilla) transfers the ship to them; a shared ship also becomes private.
+[*]For teammates' ships to help build or supply it, set [b]Construction Assistance[/b] on those ships to [i]All Allied Ships[/i].
+[/list]
+
+[h2]Requirements[/h2]
+[list]
+[*][b]Yet Another Mod Loader[/b] (Workshop 3577650065), installed with its own instructions.
+[*]Enable Shared Ship in the in-game Mods list and [b]trust[/b] its library there.
+[*][b]All players must run the exact same version of this mod.[/b] A player without it, or with another version, will desync.
+[/list]
+
+[h2]Known limits[/h2]
+[list]
+[*]Making a ship private cancels teammates' direct control only; their other queued orders stay until replaced.
+[*]Two players building on the same shared ship at the same moment can override each other's pending edits.
+[*]Build and repair costs are paid by the player who orders them.
+[*]Crew transfer, resource trade and money stay owner-based (vanilla).
+[/list]
+
+Languages: English, Russian, German, Spanish, French, Japanese, Portuguese (Brazil), Simplified Chinese.
