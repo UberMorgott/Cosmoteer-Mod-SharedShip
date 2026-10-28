@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -187,6 +188,27 @@ public class SharedRulesTests
         job.Add(0, 0, 2);
         job.Add(0, 1, 1);
         Assert.Equal(new List<(int, int)> { (1, 1), (0, 2) }, job.Take(0, 3));
+    }
+
+    [Fact]
+    public void SaleShares_PayerAtWalletCapKeepsOthersShare()
+    {
+        // Payer 0 (the job's payer) sits at the wallet cap; vanilla's PlayerState.AddMoney clamps each wallet on its own.
+        static int AddMoney(int money, int amount) => (int)Math.Clamp((long)money + amount, int.MinValue, int.MaxValue);
+        var job = new PayerLedger<int>();
+        job.Add(0, 0, 2);
+        job.Add(0, 1, 1);
+        job.Add(0, 0, 1);
+        var wallets = new Dictionary<int, int> { [0] = int.MaxValue, [1] = 100 };
+        foreach (var (slot, value) in SharedRules.SaleShares(job.Take(0, 4), 50, 0))
+        {
+            wallets[slot] = AddMoney(wallets[slot], value);
+        }
+        Assert.Equal(int.MaxValue, wallets[0]);
+        Assert.Equal(150, wallets[1]);
+        // Lost excess: only the newest units are sold; unknown units pay the fallback.
+        Assert.Equal(new List<(int, int)> { (0, 50) }, SharedRules.SaleShares(new() { (0, 1) }, 50, 1));
+        Assert.Equal(new List<(int, int)> { (1, 100) }, SharedRules.SaleShares(new() { (-1, 2) }, 50, 1));
     }
     [Fact]
     public void RemovedByPrice_ReadsVanillasHighestPriceFirstCancel()

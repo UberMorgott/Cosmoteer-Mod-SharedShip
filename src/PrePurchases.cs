@@ -31,7 +31,7 @@ namespace SharedShip;
 ///     ResourceManager.cs:1205, <see cref="AddPrefix"/>); job to job: a cancelled job's carried units
 ///     (<see cref="CarriedPostfix"/>);
 ///   - delivered to the buyer: spent (<see cref="DeliverPostfix"/>); delivered as a sell-back: the sale is split over the
-///     payers of the units sold;
+///     payers of the units sold (<see cref="Credit"/>);
 ///   - refunded: other station removals (vanilla picks which prices), a cancelled job's units that are not returned, and a
 ///     station leaving the sim move their payers to a stash; the refund that follows pays them
 ///     (<see cref="CancelRefundablePostfix"/> for MPUpdateShipInput.cs:230/307 and ConstructionManager.cs:580,
@@ -291,55 +291,48 @@ internal static class PrePurchases
 
     // ---- Delivery ------------------------------------------------------------------------------------------------------
 
-    public static void DeliverPrefix(ResourceTransferJob __instance, CrewSoul crew, out (int Carried, int Money) __state)
+    public static void DeliverPrefix(ResourceTransferJob __instance, CrewSoul crew, out int __state)
     {
         PushJob(__instance);
-        bool split = __instance.TradeType == TradeType.SellBack && JobLots.TryGetValue(__instance, out _) && __instance.Game != null;
-        __state = (crew.CarriedResource.Quantity, split ? __instance.Game!.GetPlayerState(SharedRules.PayerIndex(__instance), deterministic: true).Money : 0);
+        __state = crew.CarriedResource.Quantity;
     }
 
     /// <summary>
-    /// Delivered pre-purchased units are spent. A delivered sell-back was credited to the job's payer
-    /// (ResourceTransferJob.cs:1480-1484); the share of units other players paid for moves on to them.
+    /// The units that left the crew (delivered, sold, or lost as excess) leave the ledger of a pre-purchase or sell-back
+    /// job; <see cref="Credit"/> already paid a sale.
     /// </summary>
-    public static void DeliverPostfix(ResourceTransferJob __instance, CrewSoul crew, (int Carried, int Money) __state)
+    public static void DeliverPostfix(ResourceTransferJob __instance, CrewSoul crew, int __state)
     {
-        if (!JobLots.TryGetValue(__instance, out var lots))
+        if (__instance.TradeType is TradeType.PrePurchased or TradeType.SellBack && JobLots.TryGetValue(__instance, out var lots))
         {
-            return;
-        }
-        int units = __state.Carried - crew.CarriedResource.Quantity;
-        if (__instance.TradeType == TradeType.PrePurchased)
-        {
-            lots.Take(0, units);
-        }
-        else if (__instance.TradeType == TradeType.SellBack && __instance.Game is GameRoot game)
-        {
-            PlayerState credited = game.GetPlayerState(SharedRules.PayerIndex(__instance), deterministic: true);
-            // Vanilla credits price * received (ResourceTransferJob.cs:1480-1484); without lost excess that is every unit
-            // that left the crew. Measured only for lost excess, where the received count is not visible here.
-            int received = credited.Money - __state.Money; // what actually reached the wallet (AddMoney may clamp)
-            int income = __instance.ResourceTypeRules.LoseExcessOnDelivery ? received : units * __instance.PricePerResource;
-            int total = income;
-            var others = new List<(int Slot, int Value)>();
-            foreach (var (slot, qty) in lots.Take(0, units))
-            {
-                int n = Math.Min(income, qty * __instance.PricePerResource);
-                if (slot >= 0 && slot != credited.Index && n > 0)
-                {
-                    others.Add((slot, n));
-                }
-                income -= Math.Max(n, 0);
-            }
-            // The job's payer keeps its own share (what is left of the income); only the rest of what it received moves on.
-            int own = total - others.Sum(o => o.Value);
-            credited.AddMoney(-Math.Clamp(received - own, 0, others.Sum(o => o.Value)));
-            foreach (var (slot, value) in others)
-            {
-                game.GetPlayerState(slot, deterministic: true).AddMoney(value);
-            }
+            lots.Take(0, __state - crew.CarriedResource.Quantity);
         }
     }
+
+    /// <summary>
+    /// The AddMoney calls of DeliverResources (ResourceTransferJob.cs:1471-1486). A sell-back's price * received units goes
+    /// to the payers of the units sold, one AddMoney each, so every wallet gets vanilla's own clamp; others are vanilla.
+    /// </summary>
+    public static int Credit(PlayerState payer, int amount)
+    {
+        // shortcut: received units come back as amount / price, so a wrapped vanilla price * received (prices near int.MaxValue)
+        // pays the job's payer as vanilla; pass the received count from the IL if such prices ever exist.
+        if (CurrentJob is not { TradeType: TradeType.SellBack, PricePerResource: > 0 } job || !JobLots.TryGetValue(job, out var lots)
+            || amount < 0 || amount % job.PricePerResource != 0)
+        {
+            return payer.AddMoney(amount);
+        }
+        var sold = new PayerLedger<int>();
+        sold.Lots.AddRange(lots.Lots); // a copy: DeliverPostfix removes the units from the ledger
+        foreach (var (slot, value) in SharedRules.SaleShares(sold.Take(0, amount / job.PricePerResource), job.PricePerResource, payer.Index))
+        {
+            payer.Game.GetPlayerState(slot, deterministic: true).AddMoney(value);
+        }
+        return payer.Money;
+    }
+
+    public static IEnumerable<CodeInstruction> CreditTranspiler(IEnumerable<CodeInstruction> instructions) =>
+        ReplaceCalls(instructions, AccessTools.Method(typeof(PlayerState), nameof(PlayerState.AddMoney)), nameof(Credit), null, expected: 3);
 
     public static void JobScopeFinalizer() => PopJob();
 
@@ -512,9 +505,9 @@ internal static class PrePurchases
 
     // ---- Shared --------------------------------------------------------------------------------------------------------
 
-    /// <summary>Replaces the one call of <paramref name="target"/> (where <paramref name="followedBy"/> holds) with a static helper.</summary>
+    /// <summary>Replaces the <paramref name="expected"/> calls of <paramref name="target"/> (where <paramref name="followedBy"/> holds) with a static helper.</summary>
     private static IEnumerable<CodeInstruction> ReplaceCalls(IEnumerable<CodeInstruction> instructions, MethodInfo target, string helper,
-        Func<CodeInstruction, bool>? followedBy)
+        Func<CodeInstruction, bool>? followedBy, int expected = 1)
     {
         var list = instructions.ToList();
         int replaced = 0;
@@ -526,8 +519,8 @@ internal static class PrePurchases
                 replaced++;
             }
         }
-        return replaced == 1
+        return replaced == expected
             ? list
-            : throw new InvalidOperationException($"{target.DeclaringType?.Name}.{target.Name}: {replaced} calls, expected 1");
+            : throw new InvalidOperationException($"{target.DeclaringType?.Name}.{target.Name}: {replaced} calls, expected {expected}");
     }
 }

@@ -211,7 +211,8 @@ internal static class Patcher
             Postfix: Method(typeof(Payers), nameof(Payers.ReadPostfix))));
         list.Add(new(Method(Rtj, nameof(ResourceTransferJob.GetIntegrityHash)), Postfix: Method(typeof(Payers), nameof(Payers.HashPostfix))));
         list.Add(new(Method(Rtj, "DeliverResources"), Prefix: Method(typeof(PrePurchases), nameof(PrePurchases.DeliverPrefix)),
-            Postfix: Method(typeof(PrePurchases), nameof(PrePurchases.DeliverPostfix)), Finalizer: Method(typeof(PrePurchases), nameof(PrePurchases.JobScopeFinalizer))));
+            Postfix: Method(typeof(PrePurchases), nameof(PrePurchases.DeliverPostfix)),
+            Transpiler: Method(typeof(PrePurchases), nameof(PrePurchases.CreditTranspiler)), Finalizer: Method(typeof(PrePurchases), nameof(PrePurchases.JobScopeFinalizer))));
         list.Add(new(Method(rm, nameof(ResourceManager.PrePurchaseBuyableResources)), Transpiler: Method(typeof(PrePurchases), nameof(PrePurchases.ChargeTranspiler))));
         var removals = typeof(PrePurchaseHandler).GetMethods().Where(m => m.Name == nameof(PrePurchaseHandler.RemovePrePurchases)).ToList();
         if (removals.Count != 3)

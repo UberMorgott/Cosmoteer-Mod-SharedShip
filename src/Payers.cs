@@ -206,7 +206,7 @@ internal static class Payers
     /// <summary>
     /// ResourceManager.CarriedResourceTransfer prefix: inside a job's Cancel or delivery, the new job (a sell-back or a
     /// return) is indexed under that job's payer; a pre-purchase turned into a sell-back under its main payer (the sale
-    /// itself is split over all of them, <see cref="PrePurchases.DeliverPostfix"/>).
+    /// itself is split over all of them, <see cref="PrePurchases.Credit"/>).
     /// </summary>
     public static void CarriedPrefix(TradeType tradeType, out int? __state)
     {

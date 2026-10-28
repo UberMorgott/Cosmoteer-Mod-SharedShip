@@ -92,6 +92,29 @@ internal static partial class SharedRules
     }
 
     /// <summary>
+    /// A sale of <paramref name="parts"/> (a ledger Take) at <paramref name="price"/>: one sum per payer, in part order;
+    /// units nobody recorded go to <paramref name="fallback"/>. Each sum is one AddMoney, so each wallet clamps on its own.
+    /// </summary>
+    public static List<(int Slot, int Value)> SaleShares(List<(int Slot, int Qty)> parts, int price, int fallback)
+    {
+        var shares = new List<(int Slot, int Value)>();
+        foreach (var (slot, qty) in parts)
+        {
+            int s = slot >= 0 ? slot : fallback;
+            int i = shares.FindIndex(x => x.Slot == s);
+            if (i >= 0)
+            {
+                shares[i] = (s, shares[i].Value + qty * price);
+            }
+            else
+            {
+                shares.Add((s, qty * price));
+            }
+        }
+        return shares;
+    }
+
+    /// <summary>
     /// Units removed per price between two snapshots of one costed stock (price, quantity), in the order of
     /// <paramref name="before"/>. Vanilla picks which prices go (CostedQuantities); this only reads the result.
     /// </summary>
