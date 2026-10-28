@@ -71,24 +71,20 @@ internal static partial class SharedRules
 
     /// <summary>
     /// Player whose money a trade job moves (replaces job.Ship.Metadata.PlayerIndex in ResourceTransferJob's money code):
-    /// the player who issued it (ManualID.PlayerID, serialized with the job and hashed) when that player is a connected
-    /// Career teammate of the ship's owner, else the owner (vanilla; also auto/global jobs with no issuer).
-    /// Independent of the [S] tag on purpose: the issuer could only create the job while the ship was shared
-    /// (MPMoveResourcesInput.Execute checks CanExecuteCrewCommandsFrom), and debit and refund of one job must hit the same
-    /// player even if the tag is removed in between. Only connected players count (GameRoot.HumanPlayersByID comes from
-    /// the lockstep player list, a mid-game joiner has the same map); disconnected issuers fall back to the owner because
-    /// GameRoot's disconnected-player map is not part of a join snapshot.
+    /// the job's recorded payer (<see cref="Payers"/>: the lockstep sender that created it), else the owner (vanilla; auto
+    /// jobs and jobs from older saves). Independent of the [S] tag and of later owner changes on purpose: debit and refund
+    /// of one job must hit the same player.
     /// </summary>
-    public static int PayerIndex(ResourceTransferJob job)
-    {
-        Ship ship = job.Ship!;
-        return job.Game is GameRoot game
-            && ConnectedPlayerIndex(job.ManualID?.PlayerID, game.HumanPlayersByID) is int index
-            && IsTeammateOfOwner(ship, index)
-            ? index
-            : ship.Metadata.PlayerIndex;
-    }
+    public static int PayerIndex(ResourceTransferJob job) => Payers.Get(job) ?? job.Ship!.Metadata.PlayerIndex;
 
+    /// <summary>A shared ship of a Career human: [S] tag and a human-slot owner.</summary>
+    public static bool IsShared(Ship ship) =>
+        HasTag(ship) && ship.Metadata.PlayerIndex >= 0 && ship.Sim?.Mode is CareerSimModeManager career
+        && career.IsHumanPlayerAllegiance(ship.Metadata.PlayerIndex);
+
+    /// <summary>"<paramref name="ship"/> is <paramref name="playerIndex"/>'s own": owner, or shared with them.</summary>
+    public static bool IsOwnFor(Ship ship, int playerIndex) =>
+        ship.Metadata.PlayerIndex == playerIndex || IsSharedWith(ship, playerIndex);
     // ---- Replacements for the vanilla CommandManager members (bodies mirror CommandManager.cs:327-737 of 0.30.5). ----
     // Signatures are "instance as first argument" so a transpiler can swap call/callvirt for call 1:1 on the IL stack.
 

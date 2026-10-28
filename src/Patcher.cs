@@ -7,14 +7,17 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Reflection.Emit;
 using Cosmoteer.Crew;
+using Cosmoteer.Game.Gui.Resources;
 using Cosmoteer.Game.Multiplayer.MPInputs;
 using Cosmoteer.Modes;
 using Cosmoteer.Modes.Career;
 using Cosmoteer.Ships;
 using Cosmoteer.Ships.Commands;
 using Cosmoteer.Ships.Crew.Jobs;
+using Cosmoteer.Ships.Resources;
 using Cosmoteer.Simulation;
 using HarmonyLib;
+using Halfling.Serialization.Generic;
 
 namespace SharedShip;
 
@@ -108,21 +111,21 @@ internal static class Patcher
             (Method(typeof(SimModeManager), nameof(SimModeManager.CanSalvage)), nameof(OwnershipPostfixes.CanSalvage)),
             (Getter(typeof(CrewSoul), nameof(CrewSoul.IsLocalPlayerCrew)), nameof(OwnershipPostfixes.IsLocalPlayerCrew)),
         };
-        MethodInfo moveResources = Method(typeof(MPMoveResourcesInput), nameof(MPMoveResourcesInput.Execute));
         var moneyMethods = new List<MethodInfo>();
-        foreach (var (name, _) in SharedResources.MoneyMethods)
+        foreach (var (name, _) in Payers.MoneyMethods)
         {
-            Type job = typeof(ResourceTransferJob);
             moneyMethods.Add(name switch
             {
-                "set_ResourcesRequested" => AccessTools.PropertySetter(job, nameof(ResourceTransferJob.ResourcesRequested)),
-                "Cancel" => AccessTools.Method(job, name, new[] { typeof(int), typeof(bool) }),
-                _ => Method(job, name),
-            } ?? throw new MissingMethodException(job.FullName, name));
+                "set_ResourcesRequested" => AccessTools.PropertySetter(Rtj, nameof(ResourceTransferJob.ResourcesRequested)),
+                "Cancel" => RtjCancel,
+                _ => Method(Rtj, name),
+            } ?? throw new MissingMethodException(Rtj.FullName, name));
         }
+        List<Patch> economy = EconomyPatches();
 
-        var patched = new List<MethodBase> { localPlayerShips, setShipInfo, transfer, careerGui, moveResources };
+        var patched = new List<MethodBase> { localPlayerShips, setShipInfo, transfer, careerGui };
         patched.AddRange(moneyMethods);
+        patched.AddRange(economy.Select(p => p.Original));
         patched.AddRange(ownershipTargets.Select(t => t.Original));
         foreach (var t in commandTargets)
         {
@@ -131,7 +134,7 @@ internal static class Patcher
         }
 
         // Inlined copies must be known before anything is patched (pure read of the game DLL).
-        List<MethodBase> inliners = FindR2RInliners(patched);
+        List<MethodBase> inliners = FindR2RInliners(patched.Distinct().ToList());
 
         foreach (var t in commandTargets)
         {
@@ -147,14 +150,16 @@ internal static class Patcher
         {
             harmony.Patch(t.Original, postfix: new HarmonyMethod(Method(typeof(OwnershipPostfixes), t.Postfix)));
         }
-        harmony.Patch(moveResources, prefix: new HarmonyMethod(Method(typeof(SharedResources), nameof(SharedResources.RejectForgedIssuer))));
-        var payerTranspiler = new HarmonyMethod(Method(typeof(SharedResources), nameof(SharedResources.PayerTranspiler)));
+        var payerTranspiler = new HarmonyMethod(Method(typeof(Payers), nameof(Payers.PayerTranspiler)));
         foreach (MethodInfo m in moneyMethods)
         {
             harmony.Patch(m, transpiler: payerTranspiler);
         }
-        patchedCount = patched.Count;
-
+        foreach (Patch p in economy)
+        {
+            harmony.Patch(p.Original, H(p.Prefix), H(p.Postfix), H(p.Transpiler), H(p.Finalizer));
+        }
+        patchedCount = patched.Distinct().Count();
         var transpiler = new HarmonyMethod(Method(typeof(Patcher), nameof(RedirectTranspiler)));
         foreach (MethodBase inliner in inliners)
         {
@@ -164,6 +169,92 @@ internal static class Patcher
         inlinerCount = inliners.Count;
     }
 
+    private static readonly Type Rtj = typeof(ResourceTransferJob);
+
+    private static MethodInfo RtjCancel =>
+        AccessTools.Method(Rtj, nameof(ResourceTransferJob.Cancel), new[] { typeof(int), typeof(bool) })
+        ?? throw new MissingMethodException(Rtj.FullName, nameof(ResourceTransferJob.Cancel));
+
+    /// <summary>One Harmony patch: the original and the helpers that patch it (any may be null).</summary>
+    private sealed record Patch(MethodBase Original, MethodInfo? Prefix = null, MethodInfo? Postfix = null,
+        MethodInfo? Transpiler = null, MethodInfo? Finalizer = null);
+
+    private static HarmonyMethod? H(MethodInfo? m) => m == null ? null : new HarmonyMethod(m);
+
+    /// <summary>Wallets (acting player, payers, pre-purchase ledger) and crew (split, moves, adoption, salvage).</summary>
+    private static List<Patch> EconomyPatches()
+    {
+        Type rm = typeof(ResourceManager);
+        Type sink = AccessTools.Inner(rm, "SinkInfo") ?? throw new MissingMemberException(rm.FullName, "SinkInfo");
+        MethodInfo refund = Method(typeof(PrePurchases), nameof(PrePurchases.RefundTranspiler));
+        MethodInfo merge = Method(typeof(Payers), nameof(Payers.MergeTranspiler));
+        MethodInfo salvage = Method(typeof(SharedCrew), nameof(SharedCrew.SalvageTranspiler));
+        var list = new List<Patch>();
+        foreach (var (type, name) in Acting.Dispatchers)
+        {
+            list.Add(new(Method(type, name), Transpiler: Method(typeof(Acting), nameof(Acting.DispatchTranspiler))));
+        }
+        foreach (string name in new[] { "CreateOrIncreaseManualJob", "RegisterJob", "UnregisterJob" })
+        {
+            list.Add(new(Method(sink, name), Transpiler: merge));
+        }
+        list.Add(new(RtjCancel, Prefix: Method(typeof(Payers), nameof(Payers.CancelPrefix)),
+            Postfix: Method(typeof(Payers), nameof(Payers.CancelPostfix)), Finalizer: Method(typeof(Payers), nameof(Payers.CancelFinalizer))));
+        list.Add(new(Method(rm, nameof(ResourceManager.CarriedResourceTransfer)), Prefix: Method(typeof(Payers), nameof(Payers.CarriedPrefix)),
+            Postfix: Method(typeof(PrePurchases), nameof(PrePurchases.CarriedPostfix)), Finalizer: Method(typeof(Payers), nameof(Payers.CarriedFinalizer))));
+        list.Add(new(Method(rm, nameof(ResourceManager.ManualResourceTransfer)), Postfix: Method(typeof(PrePurchases), nameof(PrePurchases.ManualTransferPostfix))));
+        list.Add(new(Method(rm, nameof(ResourceManager.RemoveManualTransferJob)), Prefix: Method(typeof(PrePurchases), nameof(PrePurchases.JobScopePrefix)),
+            Finalizer: Method(typeof(PrePurchases), nameof(PrePurchases.JobScopeFinalizer))));
+        list.Add(new(Method(rm, nameof(ResourceManager.AddPrePurchaseResources)), Prefix: Method(typeof(PrePurchases), nameof(PrePurchases.AddPrefix))));
+        list.Add(new(Method(Rtj, nameof(ResourceTransferJob.WriteTo)), Postfix: Method(typeof(Payers), nameof(Payers.WriteToPostfix))));
+        list.Add(new(AccessTools.Constructor(Rtj, new[] { typeof(GenericSerialReader) }) ?? throw new MissingMethodException(Rtj.FullName, ".ctor(reader)"),
+            Postfix: Method(typeof(Payers), nameof(Payers.ReadPostfix))));
+        list.Add(new(Method(Rtj, nameof(ResourceTransferJob.GetIntegrityHash)), Postfix: Method(typeof(Payers), nameof(Payers.HashPostfix))));
+        list.Add(new(Method(Rtj, "DeliverResources"), Prefix: Method(typeof(PrePurchases), nameof(PrePurchases.DeliverPrefix)),
+            Postfix: Method(typeof(PrePurchases), nameof(PrePurchases.DeliverPostfix)), Finalizer: Method(typeof(PrePurchases), nameof(PrePurchases.JobScopeFinalizer))));
+        list.Add(new(Method(rm, nameof(ResourceManager.PrePurchaseBuyableResources)), Transpiler: Method(typeof(PrePurchases), nameof(PrePurchases.ChargeTranspiler))));
+        var removals = typeof(PrePurchaseHandler).GetMethods().Where(m => m.Name == nameof(PrePurchaseHandler.RemovePrePurchases)).ToList();
+        if (removals.Count != 3)
+        {
+            throw new MissingMethodException(nameof(PrePurchaseHandler), $"RemovePrePurchases: {removals.Count} overloads, expected 3");
+        }
+        foreach (MethodInfo m in removals)
+        {
+            list.Add(new(m, Prefix: Method(typeof(PrePurchases), nameof(PrePurchases.RemovePrefix)), Postfix: Method(typeof(PrePurchases), nameof(PrePurchases.RemovePostfix))));
+        }
+        MethodInfo transferTo = Method(rm, nameof(ResourceManager.TransferConstructionResourcesTo));
+        list.Add(new(transferTo, Transpiler: Method(typeof(PrePurchases), nameof(PrePurchases.TransferTranspiler))));
+        list.Add(new(transferTo, Transpiler: refund, Finalizer: Method(typeof(PrePurchases), nameof(PrePurchases.TransferScopeFinalizer))));
+        list.Add(new(Method(rm, "OnComponentDeactivated"), Prefix: Method(typeof(PrePurchases), nameof(PrePurchases.DeactivatedPrefix)),
+            Transpiler: refund, Finalizer: Method(typeof(PrePurchases), nameof(PrePurchases.DeactivatedFinalizer))));
+        list.Add(new(Method(rm, "RefundExpiredPrePurchasedResources"), Transpiler: refund));
+        list.Add(new(Method(rm, nameof(ResourceManager.CancelRefundableResources)), Postfix: Method(typeof(PrePurchases), nameof(PrePurchases.CancelRefundablePostfix))));
+        list.Add(new(Method(rm, nameof(ResourceManager.WriteTo)), Postfix: Method(typeof(PrePurchases), nameof(PrePurchases.WriteToPostfix))));
+        list.Add(new(Method(rm, nameof(ResourceManager.ReadFrom)), Postfix: Method(typeof(PrePurchases), nameof(PrePurchases.ReadFromPostfix))));
+        list.Add(new(Method(rm, nameof(ResourceManager.GetIntegrityHash)), Postfix: Method(typeof(PrePurchases), nameof(PrePurchases.HashPostfix))));
+
+        list.Add(new(Method(typeof(SimCrewManager), nameof(SimCrewManager.CountCrewForPlayer)), Postfix: Method(typeof(SharedCrew), nameof(SharedCrew.CountPostfix))));
+        list.Add(new(Method(typeof(CareerGameModeManager), nameof(CareerGameModeManager.OnSwitchingSimulation)),
+            Postfix: Method(typeof(SharedCrew), nameof(SharedCrew.SwitchingPostfix))));
+        list.Add(new(CrewLimitLambda(), Transpiler: Method(typeof(SharedCrew), nameof(SharedCrew.OwnerPairTranspiler))));
+        list.Add(new(Method(typeof(CrewAndResourceTransferWindow), "GetCrewCapacityWithCrewLimitWhenReceivingFrom"),
+            Prefix: Method(typeof(SharedCrew), nameof(SharedCrew.CapacityPrefix))));
+        list.Add(new(Method(typeof(CrewSoul), "FindNewHomeShip"), Transpiler: Method(typeof(SharedCrew), nameof(SharedCrew.AdoptTranspiler))));
+        list.Add(new(Method(typeof(SalvageCommand), nameof(SalvageCommand.IsValid)), Transpiler: salvage));
+        list.Add(new(Method(typeof(MPSalvagePartInput), nameof(MPSalvagePartInput.Execute)), Transpiler: salvage));
+        return list;
+    }
+
+    /// <summary>The compiler-generated lambda of MPSetCrewHomeShipInput.Execute that counts crew changing owner (:86-90).</summary>
+    private static MethodInfo CrewLimitLambda()
+    {
+        Type input = typeof(MPSetCrewHomeShipInput);
+        MethodInfo homeShip = AccessTools.PropertyGetter(input, nameof(MPSetCrewHomeShipInput.HomeShip));
+        return input.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)
+            .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
+            .Single(m => m.Name.StartsWith("<Execute>", StringComparison.Ordinal) && m.ReturnType == typeof(bool)
+                && PatchProcessor.GetOriginalInstructions(m).Any(i => i.Calls(homeShip)));
+    }
     /// <summary>
     /// Precompiled methods of Cosmoteer.dll that contain an inlined copy of any method in <paramref name="patched"/>.
     /// Throws if the table cannot be read or lists a method we cannot safely patch.
@@ -267,7 +358,7 @@ internal static class Patcher
 /// Postfixes that extend vanilla ownership predicates with shared access (vanilla true stays true). Only CommandManager
 /// (player-to-ship) and Ship.IsSamePlayerAs (ship-to-ship) decide ownership in vanilla sim code; CanSalvage and
 /// IsLocalPlayerCrew are the two predicates that compare owners directly instead of calling either.
-/// Per-player accounting (crew caps, crew ownership, wallets, GetShipsForPlayer) deliberately stays with the real owner.
+/// Crew counts and wallets are per player (<see cref="SharedCrew"/>, <see cref="Payers"/>); GetShipsForPlayer stays per owner.
 /// </summary>
 internal static class OwnershipPostfixes
 {

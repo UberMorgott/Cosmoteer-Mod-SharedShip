@@ -1,18 +1,11 @@
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace SharedShip.Tests;
 
 public class SharedRulesTests
 {
-    // Stands in for Halfling's MessengerID: a value-type player id.
-    private readonly record struct PlayerId(int Value);
-
-    private static readonly PlayerId Host = new(100), Guest = new(200), Gone = new(300);
-
-    // GameRoot.HumanPlayersByID: connected players only.
-    private static readonly IReadOnlyDictionary<PlayerId, int> Connected = new Dictionary<PlayerId, int> { [Host] = 0, [Guest] = 1 };
-
     [Theory]
     [InlineData("[S] Freighter", true)]
     [InlineData("Freighter [S]", true)]
@@ -74,43 +67,135 @@ public class SharedRulesTests
         Assert.Equal(expected, SharedRules.IsSharedPair(bTagged, bOwner, aTagged, aOwner)); // symmetric
     }
 
-    [Fact]
-    public void ConnectedPlayerIndex_ResolvesConnectedPlayers()
+    // ---- Crew split ------------------------------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData(10, 0, 5)] // the user's example: a 10-crew shared ship counts 5 for each of two players
+    [InlineData(10, 1, 5)]
+    [InlineData(7, 0, 4)] // odd: the remainder goes to the lowest slot
+    [InlineData(7, 1, 3)]
+    [InlineData(7, 2, 0)] // not a player of this career
+    public void CrewShare_SplitsEquallyRemainderToLowestSlots(int crew, int player, int expected)
     {
-        Assert.Equal(1, SharedRules.ConnectedPlayerIndex<PlayerId>(Guest, Connected));
+        Assert.Equal(expected, SharedRules.CrewShare(crew, new[] { 0, 1 }, player));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(5)]
+    [InlineData(11)]
+    public void CrewShare_PartsAddUpToTheCrew(int crew)
+    {
+        int[] roster = { 0, 2, 3 };
+        Assert.Equal(crew, SharedRules.CrewShare(crew, roster, 0) + SharedRules.CrewShare(crew, roster, 2) + SharedRules.CrewShare(crew, roster, 3));
+        Assert.Equal(new[] { 4, 4, 3 }, new[] { 0, 2, 3 }.Select(p => SharedRules.CrewShare(11, roster, p)));
     }
 
     [Fact]
-    public void ConnectedPlayerIndex_NoIssuer_IsNull()
+    public void CrewShare_UserExample_PrivateShipsPlusHalfOfTheShared()
     {
-        // Auto/global trade jobs carry no issuer: PayerIndex falls back to the owner.
-        Assert.Null(SharedRules.ConnectedPlayerIndex<PlayerId>(null, Connected));
+        int[] roster = { 0, 1 };
+        Assert.Equal(8, 3 + SharedRules.CrewShare(10, roster, 0)); // A: own 3-crew ship + half of 10
+        Assert.Equal(10, 5 + SharedRules.CrewShare(10, roster, 1)); // B: own 5-crew ship + half of 10
     }
 
     [Fact]
-    public void ConnectedPlayerIndex_DisconnectedIssuer_IsNull()
+    public void AddSorted_KeepsDistinctAscendingSlots()
     {
-        // A player who left is not in the join snapshot either: PayerIndex falls back to the owner on every client.
-        Assert.Null(SharedRules.ConnectedPlayerIndex<PlayerId>(Gone, Connected));
+        var roster = new List<int>();
+        foreach (int p in new[] { 3, 0, 3, 1 })
+        {
+            SharedRules.AddSorted(roster, p);
+        }
+        Assert.Equal(new[] { 0, 1, 3 }, roster);
+    }
+
+    // ---- Payer selection -------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void MajorPayer_MostUnitsTiesToLowestSlotUnknownIgnored()
+    {
+        Assert.Equal(1, SharedRules.MajorPayer(new() { (0, 2), (1, 5), (-1, 9) }));
+        Assert.Equal(0, SharedRules.MajorPayer(new() { (2, 3), (0, 3) }));
+        Assert.Null(SharedRules.MajorPayer(new() { (-1, 4) }));
+    }
+
+    // ---- Pre-purchase ledger -----------------------------------------------------------------------------------------
+
+    [Fact]
+    public void Ledger_TakesNewestPurchaseOfThatPriceFirst()
+    {
+        var ledger = new PayerLedger<(string, int)>();
+        ledger.Add(("steel", 10), 0, 4); // A buys first
+        ledger.Add(("steel", 10), 1, 3); // then B
+        Assert.Equal(new List<(int, int)> { (1, 3), (0, 2) }, ledger.Take(("steel", 10), 5));
+        Assert.Equal(new List<(int, int)> { (0, 2) }, ledger.Take(("steel", 10), 9)[..1]);
     }
 
     [Fact]
-    public void IsHonestIssuer_AcceptsSenderAsIssuer()
+    public void Ledger_OnlyTheCancelledResourceAndPriceRefundsItsPayer()
     {
-        Assert.True(SharedRules.IsHonestIssuer(SharedRules.ConnectedPlayerIndex<PlayerId>(Guest, Connected), 1));
+        // Codex's case: A paid steel, B paid copper; cancelling steel must not touch B.
+        var ledger = new PayerLedger<(string, int)>();
+        ledger.Add(("steel", 10), 0, 4);
+        ledger.Add(("copper", 10), 1, 4);
+        ledger.Add(("steel", 25), 1, 2);
+        Assert.Equal(new List<(int, int)> { (0, 4) }, ledger.Take(("steel", 10), 4));
+        Assert.Equal(new List<(int, int)> { (1, 4) }, ledger.Take(("copper", 10), 4));
+        Assert.Equal(new List<(int, int)> { (1, 2) }, ledger.Take(("steel", 25), 2));
+        Assert.Empty(ledger.Lots);
     }
 
     [Fact]
-    public void IsHonestIssuer_RejectsAnotherConnectedPlayerAsIssuer()
+    public void Ledger_UnknownUnitsComeBackAsNobody()
     {
-        // Guest (index 1) claiming the host would make PayerIndex charge the host's money.
-        Assert.False(SharedRules.IsHonestIssuer(SharedRules.ConnectedPlayerIndex<PlayerId>(Host, Connected), 1));
+        var ledger = new PayerLedger<(string, int)>();
+        ledger.Add(("steel", 10), 2, 1);
+        Assert.Equal(new List<(int, int)> { (2, 1), (-1, 3) }, ledger.Take(("steel", 10), 4));
     }
 
     [Fact]
-    public void IsHonestIssuer_AcceptsClaimsNobodyCouldBeChargedFor()
+    public void Ledger_SamePayerInARowMerges()
     {
-        Assert.True(SharedRules.IsHonestIssuer(SharedRules.ConnectedPlayerIndex<PlayerId>(null, Connected), 1));
-        Assert.True(SharedRules.IsHonestIssuer(SharedRules.ConnectedPlayerIndex<PlayerId>(Gone, Connected), 1));
+        var ledger = new PayerLedger<(string, int)>();
+        ledger.Add(("steel", 10), 0, 1);
+        ledger.Add(("steel", 10), 0, 2);
+        ledger.Add(("steel", 10), 0, 0); // nothing bought
+        Assert.Single(ledger.Lots);
+        Assert.Equal(3, ledger.Lots[0].Qty);
+    }
+
+    [Fact]
+    public void Ledger_UnitsMovedToAJobKeepTheirPayers()
+    {
+        // Codex's case: A's units leave the station in a crew job, then B buys the same resource at the same price.
+        // Delivering A's job must spend A's lot, and cancelling B's purchase must refund B.
+        var station = new PayerLedger<(string, int)>();
+        var job = new PayerLedger<int>();
+        station.Add(("steel", 10), 0, 3);
+        job.AddParts(0, station.Take(("steel", 10), 3));
+        station.Add(("steel", 10), 1, 3);
+        Assert.Equal(new List<(int, int)> { (0, 3) }, job.Take(0, 3));
+        Assert.Equal(new List<(int, int)> { (1, 3) }, station.Take(("steel", 10), 3));
+    }
+
+    [Fact]
+    public void Ledger_MixedSellBackKeepsEachPayersShare()
+    {
+        var job = new PayerLedger<int>();
+        job.Add(0, 0, 2);
+        job.Add(0, 1, 1);
+        Assert.Equal(new List<(int, int)> { (1, 1), (0, 2) }, job.Take(0, 3));
+    }
+    [Fact]
+    public void RemovedByPrice_ReadsVanillasHighestPriceFirstCancel()
+    {
+        // Vanilla cancels the most expensive units first (ResourceManager.CancelRefundableResources); the ledger follows
+        // whatever prices vanilla actually removed.
+        var before = new[] { (10, 5), (25, 2), (10, 1) };
+        var after = new[] { (10, 4) };
+        Assert.Equal(new List<(int, int)> { (10, 2), (25, 2) }, SharedRules.RemovedByPrice(before, after));
+        Assert.Empty(SharedRules.RemovedByPrice(before, before));
     }
 }

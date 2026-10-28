@@ -39,18 +39,151 @@ internal static partial class SharedRules
         (aTagged || bTagged) && AreDistinctPlayers(aOwner, bOwner);
 
     /// <summary>
-    /// Player index of a connected human player (GameRoot.HumanPlayersByID), or null when there is no id or the player is
-    /// not connected (never was, or left).
+    /// <paramref name="player"/>'s part of a shared ship's <paramref name="crew"/>, split equally over the sorted, distinct
+    /// <paramref name="roster"/>: crew / N each, and the remainder one each to the lowest slots. The parts add up to
+    /// <paramref name="crew"/> exactly; a player outside the roster gets 0.
     /// </summary>
-    public static int? ConnectedPlayerIndex<TId>(TId? id, IReadOnlyDictionary<TId, int> players)
-        where TId : struct
+    public static int CrewShare(int crew, IReadOnlyList<int> roster, int player)
     {
-        return id is TId key && players.TryGetValue(key, out int index) ? index : null;
+        int rank = IndexOf(roster, player);
+        if (rank < 0)
+        {
+            return 0;
+        }
+        return crew / roster.Count + (rank < crew % roster.Count ? 1 : 0);
+    }
+
+    private static int IndexOf(IReadOnlyList<int> list, int value)
+    {
+        for (int i = 0; i < list.Count; i++)
+        {
+            if (list[i] == value)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /// <summary>Adds <paramref name="slot"/> to a sorted list of distinct slots if missing.</summary>
+    public static void AddSorted(List<int> sorted, int slot)
+    {
+        int i = sorted.BinarySearch(slot);
+        if (i < 0)
+        {
+            sorted.Insert(~i, slot);
+        }
+    }
+
+    /// <summary>Payer of a part list: the slot holding the most units, ties to the lowest slot; null when none is known.</summary>
+    public static int? MajorPayer(List<(int Slot, int Qty)> parts)
+    {
+        int? best = null;
+        int bestQty = 0;
+        foreach (var (slot, qty) in parts)
+        {
+            if (slot >= 0 && (qty > bestQty || (qty == bestQty && best is int b && slot < b)))
+            {
+                best = slot;
+                bestQty = qty;
+            }
+        }
+        return best;
     }
 
     /// <summary>
-    /// A trade may name only its sender as issuer (vanilla clients always send their own ID). A claim that resolves to no
-    /// connected player names nobody PayerIndex could charge, so it passes.
+    /// Units removed per price between two snapshots of one costed stock (price, quantity), in the order of
+    /// <paramref name="before"/>. Vanilla picks which prices go (CostedQuantities); this only reads the result.
     /// </summary>
-    public static bool IsHonestIssuer(int? claimedIndex, int senderIndex) => claimedIndex is not int claimed || claimed == senderIndex;
+    public static List<(int Price, int Qty)> RemovedByPrice(IEnumerable<(int Price, int Qty)> before, IEnumerable<(int Price, int Qty)> after)
+    {
+        var left = new Dictionary<int, int>();
+        foreach (var (price, qty) in after)
+        {
+            left[price] = left.GetValueOrDefault(price) + qty;
+        }
+        var removed = new List<(int, int)>();
+        var seen = new HashSet<int>();
+        var had = new Dictionary<int, int>();
+        foreach (var (price, qty) in before)
+        {
+            had[price] = had.GetValueOrDefault(price) + qty;
+        }
+        foreach (var (price, _) in before)
+        {
+            if (seen.Add(price) && had[price] - left.GetValueOrDefault(price) is int gone and > 0)
+            {
+                removed.Add((price, gone));
+            }
+        }
+        return removed;
+    }
+}
+
+/// <summary>
+/// Who paid for pre-purchased units still owed to buyers: lots of (key, payer slot, units). Vanilla keeps only
+/// (buyer, resource, price, units) per station (PrePurchaseHandler) and (resource, price, units) per crew job; one ledger
+/// per station (key = buyer, resource, price) and per job (one key) adds the payer. Within a key the newest lot goes first
+/// (LIFO); which key and how many units go is always vanilla's choice. A list, not a dictionary: tiny, and its order is
+/// the same on every client and after a save/load.
+/// </summary>
+internal sealed class PayerLedger<TKey> where TKey : IEquatable<TKey>
+{
+    public readonly List<(TKey Key, int Slot, int Qty)> Lots = new();
+
+    public void Add(TKey key, int slot, int qty)
+    {
+        if (qty <= 0 || slot < 0)
+        {
+            return;
+        }
+        int last = Lots.FindLastIndex(l => l.Key.Equals(key));
+        if (last >= 0 && Lots[last].Slot == slot)
+        {
+            Lots[last] = (key, slot, Lots[last].Qty + qty);
+        }
+        else
+        {
+            Lots.Add((key, slot, qty));
+        }
+    }
+
+    /// <summary>Removes up to <paramref name="qty"/> units, newest first; units nobody recorded come back as slot -1.</summary>
+    public List<(int Slot, int Qty)> Take(TKey key, int qty)
+    {
+        var parts = new List<(int Slot, int Qty)>();
+        for (int i = Lots.Count - 1; i >= 0 && qty > 0; i--)
+        {
+            var lot = Lots[i];
+            if (!lot.Key.Equals(key))
+            {
+                continue;
+            }
+            int n = Math.Min(qty, lot.Qty);
+            parts.Add((lot.Slot, n));
+            qty -= n;
+            if (n == lot.Qty)
+            {
+                Lots.RemoveAt(i);
+            }
+            else
+            {
+                Lots[i] = (lot.Key, lot.Slot, lot.Qty - n);
+            }
+        }
+        if (qty > 0)
+        {
+            parts.Add((-1, qty));
+        }
+        return parts;
+    }
+
+    /// <summary>Adds the known parts of a <see cref="Take"/> under <paramref name="key"/> (units moving to another place).</summary>
+    public void AddParts(TKey key, List<(int Slot, int Qty)> parts)
+    {
+        foreach (var (slot, qty) in parts)
+        {
+            Add(key, slot, qty);
+        }
+    }
 }
