@@ -11,11 +11,21 @@ Mark one or more of your ships as [b]shared[/b], and every human player in the s
 [*]command it: move, attack, strafe, direct control;
 [*]fire its weapons and pick targets;
 [*]manage its crew, resources, toggles and paint;
-[*]build, edit and repair on it;
-[*]use it exactly like one of their own ships: its crew helps build and repair their ships and theirs help it, construction resources flow both ways, crew haul between them, and they can salvage it;
-[*]trade its resources: the money goes to (or comes from) the player who makes the trade.
+[*]build, edit, repair and salvage on it;
+[*]use it exactly like one of their own ships: its crew helps build and repair their ships and theirs help it, construction resources flow both ways, crew haul between them, and it can salvage their ships where you could salvage your own.
 [/list]
-The ship also appears in each teammate's own-ship lists (control groups, select own ships, FTL readiness, comms). Ships that are not shared stay 100% vanilla. The ship keeps its real owner: money, upkeep and fleet counts stay with the owner.
+The ship also appears in each teammate's own-ship lists (control groups, select own ships, FTL readiness, comms). Ships that are not shared stay 100% vanilla.
+
+[h2]Every player has their own wallet[/h2]
+Whoever does something pays for it, and whoever sells or demolishes something gets the money:
+[list]
+[*]building, activating blueprints, hiring crew and buying from stations are paid by the player who does it, on any ship;
+[*]selling resources pays the player who sells;
+[*]cancelling a purchase that has not arrived yet (blueprint pre-purchases, a cancelled buy that is sold back) refunds the player who paid for it.
+[/list]
+
+[h2]Crew limit[/h2]
+Your own ships count fully toward your crew limit. The crew of a shared ship is split equally among all players of the game, including players who are offline (an odd crew member goes to the lowest player slot). Example: you have 3 crew, your friend has 5, a shared ship has 10: you count 8, your friend counts 10. Because the shared crew always counts, crew can move freely between your ships and shared ships, and homeless crew can settle on a shared ship.
 
 [h2]How to use[/h2]
 [list]
@@ -24,6 +34,7 @@ The ship also appears in each teammate's own-ship lists (control groups, select 
 [*][b]Myself[/b] in the same menu takes the selected ship: a teammate's shared ship becomes your private ship.
 [*]Picking a player (vanilla) transfers the ship to them; a shared ship also becomes private.
 [*][b]Construction Assistance[/b] set to [i]My Ships Only[/i] also covers the shared ship and teammates' ships, just like between your own ships.
+[*]If a player leaves, the shared ships stay shared and everyone else keeps commanding them. Their private ships stay theirs and wait for them.
 [/list]
 
 [h2]Requirements[/h2]
@@ -37,8 +48,9 @@ The ship also appears in each teammate's own-ship lists (control groups, select 
 [list]
 [*]Making a ship private cancels teammates' direct control only; their other queued orders stay until replaced.
 [*]Two players building on the same shared ship at the same moment can override each other's pending edits.
-[*]Build and repair costs are paid by the player who orders them.
-[*]Crew stay per player: crew moved between a teammate's ship and the shared ship count against the receiving owner's crew limit (vanilla).
+[*]A player who owns no ships and was never in the game when the fleet left a sector does not count for the crew split.
+[*]Sectors saved with an older version update their crew counts the next time you visit and leave them.
+[*]Saves stay loadable without the mod. Before removing the mod, finish or cancel pending trades: if two players have a pending trade with the same source, resource and price, the game without the mod keeps only one of them and the money held for the other is lost.
 [/list]
 
 Languages: English, Russian, German, Spanish, French, Japanese, Portuguese (Brazil), Simplified Chinese.

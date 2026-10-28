@@ -11,11 +11,21 @@ Marca una o varias de tus naves como [b]compartidas[/b] y cualquier jugador huma
 [*]comandarla: mover, atacar, ametrallar en lateral, control directo;
 [*]disparar sus armas y elegir objetivos;
 [*]gestionar su tripulación, recursos, interruptores y pintura;
-[*]construir, editar y reparar en ella;
-[*]usarla exactamente como una nave propia: su tripulación ayuda a construir y reparar sus naves y las de ellos la ayudan a ella, los recursos de construcción circulan en ambos sentidos, la tripulación transporta carga entre ellas y se puede desguazar;
-[*]comerciar con sus recursos: el dinero lo recibe (o lo paga) quien hace el intercambio.
+[*]construir, editar, reparar y desguazar en ella;
+[*]usarla exactamente como una nave propia: su tripulación ayuda a construir y reparar sus naves y las de ellos la ayudan a ella, los recursos de construcción circulan en ambos sentidos, la tripulación transporta carga entre ellas, y puede desguazar sus naves allí donde tú podrías desguazar las tuyas.
 [/list]
-La nave también aparece en las listas de naves propias de cada compañero (grupos de control, seleccionar naves propias, preparación FTL, comunicaciones). Las naves no compartidas quedan 100 % vanilla. La nave conserva a su dueño real: el dinero, el mantenimiento y el recuento de la flota siguen siendo del dueño.
+La nave también aparece en las listas de naves propias de cada compañero (grupos de control, seleccionar naves propias, preparación FTL, comunicaciones). Las naves no compartidas quedan 100 % vanilla.
+
+[h2]Cada jugador tiene su propio dinero[/h2]
+Quien hace algo lo paga, y quien vende o demuele algo se queda con el dinero:
+[list]
+[*]construir, activar planos, contratar tripulación y comprar en estaciones lo paga el jugador que lo hace, en cualquier nave;
+[*]al vender recursos, el dinero lo recibe el jugador que vende;
+[*]al cancelar una compra que aún no ha llegado (compras anticipadas de planos, una compra cancelada que se revende) se reembolsa al jugador que la pagó.
+[/list]
+
+[h2]Límite de tripulación[/h2]
+Tus propias naves cuentan por completo para tu límite de tripulación. La tripulación de una nave compartida se reparte a partes iguales entre todos los jugadores de la partida, incluidos los que están desconectados (si sobra un tripulante, va al jugador con el número de ranura más bajo). Ejemplo: tú tienes 3 tripulantes, tu amigo tiene 5 y una nave compartida tiene 10: a ti te cuentan 8 y a tu amigo 10. Como la tripulación compartida siempre cuenta, la tripulación puede moverse libremente entre tus naves y las naves compartidas, y la tripulación sin hogar puede instalarse en una nave compartida.
 
 [h2]Cómo usarlo[/h2]
 [list]
@@ -24,6 +34,7 @@ La nave también aparece en las listas de naves propias de cada compañero (grup
 [*][b]Mí mismo[/b] en el mismo menú toma la nave seleccionada: la nave compartida de un compañero pasa a ser tu nave privada.
 [*]Elegir a un jugador (vanilla) le transfiere la nave; una nave compartida también se vuelve privada.
 [*][b]Ayuda en la construcción[/b] en [i]Solo mis naves[/i] también incluye la nave compartida y las naves de tus compañeros, igual que entre tus propias naves.
+[*]Si un jugador se va, las naves compartidas siguen siendo compartidas y los demás siguen comandándolas. Sus naves privadas siguen siendo suyas y lo esperan.
 [/list]
 
 [h2]Requisitos[/h2]
@@ -35,10 +46,11 @@ La nave también aparece en las listas de naves propias de cada compañero (grup
 
 [h2]Limitaciones conocidas[/h2]
 [list]
-[*]Al hacer privada una nave solo se cancela el control directo de los compañeros; sus demás órdenes siguen hasta que se reemplacen.
+[*]Al hacer privada una nave solo se cancela el control directo de los compañeros; sus demás órdenes en cola siguen hasta que se reemplacen.
 [*]Si dos jugadores construyen a la vez en la misma nave compartida, sus cambios pendientes pueden sobrescribirse.
-[*]Los costes de construcción y reparación los paga quien los ordena.
-[*]La tripulación es de cada jugador: los tripulantes que pasan entre la nave de un compañero y la nave compartida cuentan para el límite de tripulación del nuevo dueño (vanilla).
+[*]Un jugador que no tiene naves y nunca estuvo en la partida cuando la flota salió de un sector no cuenta para el reparto de tripulación.
+[*]Los sectores guardados con una versión anterior actualizan su recuento de tripulación la próxima vez que los visites y los abandones.
+[*]Las partidas guardadas se pueden cargar sin el mod. Antes de quitar el mod, completa o cancela los intercambios pendientes: si dos jugadores tienen un intercambio pendiente con el mismo origen, recurso y precio, el juego sin el mod conserva solo uno y el dinero retenido para el otro se pierde.
 [/list]
 
 Idiomas: inglés, ruso, alemán, español, francés, japonés, portugués (Brasil), chino simplificado.

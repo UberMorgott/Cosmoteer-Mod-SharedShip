@@ -11,11 +11,21 @@ Markiere eines oder mehrere deiner Schiffe als [b]gemeinsam[/b], dann kann jeder
 [*]es befehligen: bewegen, angreifen, seitlich ausweichen, direkt steuern;
 [*]seine Waffen abfeuern und Ziele wählen;
 [*]Crew, Ressourcen, Schalter und Lackierung verwalten;
-[*]daran bauen, es umbauen und reparieren;
-[*]es genau wie ein eigenes Schiff nutzen: Seine Crew hilft beim Bauen und Reparieren ihrer Schiffe und ihre Crews helfen ihm, Baumaterial fließt in beide Richtungen, die Crew transportiert Fracht zwischen ihnen, und es lässt sich verwerten;
-[*]mit seinen Ressourcen handeln: Das Geld erhält (oder zahlt) der Spieler, der den Handel abschließt.
+[*]daran bauen, es umbauen, reparieren und verwerten;
+[*]es genau wie ein eigenes Schiff nutzen: Seine Crew hilft beim Bauen und Reparieren ihrer Schiffe und ihre Crews helfen ihm, Baumaterial fließt in beide Richtungen, die Crew transportiert Fracht zwischen ihnen, und es kann ihre Schiffe überall dort verwerten, wo du deine eigenen verwerten könntest.
 [/list]
-Das Schiff erscheint außerdem in den eigenen Schiffslisten jedes Mitspielers (Kontrollgruppen, eigene Schiffe auswählen, FTL-Bereitschaft, Kommunikation). Nicht geteilte Schiffe bleiben komplett Vanilla. Der Besitzer bleibt gleich: Geld, Unterhalt und Flottenzählung bleiben beim Besitzer.
+Das Schiff erscheint außerdem in den eigenen Schiffslisten jedes Mitspielers (Kontrollgruppen, eigene Schiffe auswählen, FTL-Bereitschaft, Kommunikation). Nicht geteilte Schiffe bleiben zu 100 % Vanilla.
+
+[h2]Jeder Spieler hat seine eigene Kasse[/h2]
+Wer etwas tut, bezahlt es, und wer etwas verkauft oder abreißt, bekommt das Geld:
+[list]
+[*]Bauen, Blaupausen aktivieren, Crew anheuern und bei Stationen einkaufen bezahlt der Spieler, der es tut – auf jedem Schiff;
+[*]beim Verkauf von Ressourcen erhält der verkaufende Spieler das Geld;
+[*]wird ein noch nicht eingetroffener Kauf storniert (Blaupausen-Vorkäufe, ein stornierter Kauf, der zurückverkauft wird), erhält der Spieler, der bezahlt hat, das Geld zurück.
+[/list]
+
+[h2]Crewlimit[/h2]
+Deine eigenen Schiffe zählen voll für dein Crewlimit. Die Crew eines gemeinsamen Schiffs wird gleichmäßig auf alle Spieler der Partie aufgeteilt, auch auf Spieler, die offline sind (ein übrig bleibendes Crewmitglied geht an den Spieler mit dem niedrigsten Slot). Beispiel: Du hast 3 Crewmitglieder, dein Freund 5, ein gemeinsames Schiff 10: Bei dir zählen 8, bei deinem Freund 10. Weil die gemeinsame Crew immer mitzählt, kann Crew frei zwischen deinen Schiffen und gemeinsamen Schiffen wechseln, und heimatlose Crew kann sich auf einem gemeinsamen Schiff niederlassen.
 
 [h2]Bedienung[/h2]
 [list]
@@ -24,6 +34,7 @@ Das Schiff erscheint außerdem in den eigenen Schiffslisten jedes Mitspielers (K
 [*][b]Mich selbst[/b] im selben Menü übernimmt das gewählte Schiff: Das gemeinsame Schiff eines Mitspielers wird zu deinem privaten Schiff.
 [*]Die Wahl eines Spielers (Vanilla) überträgt ihm das Schiff; ein gemeinsames Schiff wird dabei privat.
 [*][b]Bauunterstützung[/b] auf [i]Nur meine Schiffe[/i] gilt auch für das gemeinsame Schiff und die Schiffe der Mitspieler – genau wie zwischen deinen eigenen Schiffen.
+[*]Verlässt ein Spieler die Partie, bleiben die gemeinsamen Schiffe gemeinsam und alle anderen befehligen sie weiter. Seine privaten Schiffe bleiben seine und warten auf ihn.
 [/list]
 
 [h2]Voraussetzungen[/h2]
@@ -35,10 +46,11 @@ Das Schiff erscheint außerdem in den eigenen Schiffslisten jedes Mitspielers (K
 
 [h2]Bekannte Einschränkungen[/h2]
 [list]
-[*]Wird ein Schiff privat gemacht, endet nur die direkte Steuerung der Mitspieler; ihre übrigen Befehle bleiben, bis sie ersetzt werden.
+[*]Wird ein Schiff privat gemacht, endet nur die direkte Steuerung der Mitspieler; ihre übrigen eingereihten Befehle bleiben, bis sie ersetzt werden.
 [*]Bauen zwei Spieler gleichzeitig am selben gemeinsamen Schiff, können sich ihre ausstehenden Änderungen gegenseitig überschreiben.
-[*]Bau- und Reparaturkosten zahlt der Spieler, der sie anordnet.
-[*]Die Crew bleibt pro Spieler: Crewmitglieder, die zwischen dem Schiff eines Mitspielers und dem gemeinsamen Schiff wechseln, zählen wie in Vanilla zum Crewlimit des neuen Besitzers.
+[*]Ein Spieler, der keine Schiffe besitzt und nie in der Partie war, als die Flotte einen Sektor verlassen hat, zählt bei der Crew-Aufteilung nicht mit.
+[*]Sektoren, die mit einer älteren Version gespeichert wurden, aktualisieren ihre Crewzahlen, wenn du sie das nächste Mal besuchst und wieder verlässt.
+[*]Spielstände lassen sich auch ohne den Mod laden. Schließe vor dem Entfernen des Mods offene Handelsgeschäfte ab oder storniere sie: Haben zwei Spieler je ein offenes Geschäft mit derselben Quelle, derselben Ressource und demselben Preis, behält das Spiel ohne den Mod nur eines davon, und das für den anderen zurückgehaltene Geld geht verloren.
 [/list]
 
 Sprachen: Englisch, Russisch, Deutsch, Spanisch, Französisch, Japanisch, Portugiesisch (Brasilien), vereinfachtes Chinesisch.

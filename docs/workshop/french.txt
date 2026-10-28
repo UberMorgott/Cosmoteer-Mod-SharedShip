@@ -11,11 +11,21 @@ Marquez un ou plusieurs de vos vaisseaux comme [b]partagés[/b] : chaque joueur 
 [*]le commander : déplacement, attaque, mitraillage latéral, contrôle direct ;
 [*]utiliser ses armes et choisir ses cibles ;
 [*]gérer son équipage, ses ressources, ses interrupteurs et sa peinture ;
-[*]construire, modifier et réparer dessus ;
-[*]l'utiliser exactement comme l'un de ses propres vaisseaux : son équipage aide à construire et réparer leurs vaisseaux et les leurs l'aident, les ressources de construction circulent dans les deux sens, l'équipage transporte le fret entre eux, et il peut être démantelé ;
-[*]échanger ses ressources : l'argent est versé au joueur qui fait l'échange (ou payé par lui).
+[*]construire, modifier, réparer et démanteler dessus ;
+[*]l'utiliser exactement comme l'un de ses propres vaisseaux : son équipage aide à construire et réparer leurs vaisseaux et les leurs l'aident, les ressources de construction circulent dans les deux sens, l'équipage transporte le fret entre eux, et il peut démanteler leurs vaisseaux là où vous pourriez démanteler les vôtres.
 [/list]
-Le vaisseau apparaît aussi dans les listes de vaisseaux de chaque coéquipier (groupes de contrôle, sélection de ses vaisseaux, préparation au FTL, communications). Les vaisseaux non partagés restent 100 % vanilla. Le vaisseau garde son vrai propriétaire : l'argent, l'entretien et le décompte de la flotte restent les siens.
+Le vaisseau apparaît aussi dans les listes de vaisseaux de chaque coéquipier (groupes de contrôle, sélection de ses vaisseaux, préparation au FTL, communications). Les vaisseaux non partagés restent 100 % vanilla.
+
+[h2]Chaque joueur a son propre porte-monnaie[/h2]
+Celui qui fait quelque chose le paie, et celui qui vend ou démolit quelque chose touche l'argent :
+[list]
+[*]la construction, l'activation de plans, le recrutement d'équipage et les achats auprès des stations sont payés par le joueur qui les effectue, sur n'importe quel vaisseau ;
+[*]la vente de ressources rapporte au joueur qui vend ;
+[*]l'annulation d'un achat pas encore arrivé (précommandes de plans, achat annulé revendu) rembourse le joueur qui l'a payé.
+[/list]
+
+[h2]Limite d'équipage[/h2]
+Vos propres vaisseaux comptent entièrement dans votre limite d'équipage. L'équipage d'un vaisseau partagé est réparti à parts égales entre tous les joueurs de la partie, y compris ceux qui sont hors ligne (un membre en surnombre revient au joueur ayant l'emplacement le plus bas). Exemple : vous avez 3 membres d'équipage, votre ami en a 5 et un vaisseau partagé en a 10 : vous en comptez 8, votre ami 10. Comme l'équipage partagé compte toujours, l'équipage peut circuler librement entre vos vaisseaux et les vaisseaux partagés, et un équipage sans foyer peut s'installer sur un vaisseau partagé.
 
 [h2]Utilisation[/h2]
 [list]
@@ -24,6 +34,7 @@ Le vaisseau apparaît aussi dans les listes de vaisseaux de chaque coéquipier (
 [*][b]Moi-même[/b] dans le même menu prend le vaisseau sélectionné : le vaisseau partagé d'un coéquipier devient votre vaisseau privé.
 [*]Choisir un joueur (vanilla) lui transfère le vaisseau ; un vaisseau partagé redevient alors privé.
 [*][b]Aide à la construction[/b] réglée sur [i]Mes vaisseaux uniquement[/i] couvre aussi le vaisseau partagé et ceux de vos coéquipiers, comme entre vos propres vaisseaux.
+[*]Si un joueur quitte la partie, les vaisseaux partagés restent partagés et tous les autres continuent de les commander. Ses vaisseaux privés restent à lui et l'attendent.
 [/list]
 
 [h2]Prérequis[/h2]
@@ -35,10 +46,11 @@ Le vaisseau apparaît aussi dans les listes de vaisseaux de chaque coéquipier (
 
 [h2]Limites connues[/h2]
 [list]
-[*]Rendre un vaisseau privé annule seulement le contrôle direct des coéquipiers ; leurs autres ordres restent jusqu'à être remplacés.
+[*]Rendre un vaisseau privé annule seulement le contrôle direct des coéquipiers ; leurs autres ordres en file restent jusqu'à être remplacés.
 [*]Si deux joueurs construisent en même temps sur le même vaisseau partagé, leurs modifications en attente peuvent s'écraser.
-[*]Les coûts de construction et de réparation sont payés par le joueur qui les ordonne.
-[*]L'équipage reste propre à chaque joueur : les membres transférés entre le vaisseau d'un coéquipier et le vaisseau partagé comptent dans la limite d'équipage du nouveau propriétaire (vanilla).
+[*]Un joueur qui ne possède aucun vaisseau et n'était jamais dans la partie quand la flotte a quitté un secteur n'est pas compté dans la répartition de l'équipage.
+[*]Les secteurs sauvegardés avec une ancienne version mettent à jour leur décompte d'équipage la prochaine fois que vous les visitez puis les quittez.
+[*]Les sauvegardes restent chargeables sans le mod. Avant de retirer le mod, terminez ou annulez les échanges en attente : si deux joueurs ont un échange en attente avec la même source, la même ressource et le même prix, le jeu sans le mod n'en garde qu'un, et l'argent réservé pour l'autre est perdu.
 [/list]
 
 Langues : anglais, russe, allemand, espagnol, français, japonais, portugais (Brésil), chinois simplifié.
